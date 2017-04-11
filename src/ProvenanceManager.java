@@ -34,7 +34,13 @@ public class ProvenanceManager {
      * @return
      */
     public Set<Table> getDependencies(Table base) {
-        return Collections.unmodifiableSet(this.dependencies.get(base));
+        Set<Table> dependencies = this.dependencies.get(base);
+
+        if (dependencies == null) {
+            return null;
+        }
+
+        return Collections.unmodifiableSet(dependencies);
     }
 
     /**
@@ -92,6 +98,32 @@ public class ProvenanceManager {
         }
 
         return true;
+    }
+
+    public void revokeAccess(Table table) {
+        if (!this.tables.contains(table)) {
+            return;
+        }
+
+        ArrayList<Table> toRevoke = new ArrayList<>();
+        toRevoke.add(table);
+
+        while (!toRevoke.isEmpty()) {
+            Table curr = toRevoke.remove(0);
+            Set<Table> dependentTables = this.dependencies.get(curr);
+
+            if (dependentTables == null) {
+                continue;
+            }
+
+            toRevoke.addAll(dependentTables);
+
+            /* TODO: something more sophisticated than just deleting dependencies.
+             * Maybe have flags set on tables that indicate if they have access to all of the tables they depend on.
+             */
+            dependencies.remove(curr);
+
+        }
     }
 
     /**

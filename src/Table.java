@@ -8,23 +8,20 @@ public class Table {
     /**
      * Creates a new base Table.
      * @param name
-     * @param pm
      */
-    public Table(String name, ProvenanceManager pm) {
+    public Table(String name) {
         this.name = name;
-        pm.addTable(this);
+        this.tool = null;
     }
 
     /**
      * Creates a new derived Table and records its dependencies
      * @param name
      * @param tool
-     * @param pm
      */
-    public Table(String name, ToolInstance tool, ProvenanceManager pm) {
+    public Table(String name, ToolInstance tool) {
         this.name = name;
         this.tool = tool;
-        pm.addTable(this, tool);
     }
 
     /**
@@ -33,5 +30,9 @@ public class Table {
      */
     public String getName() {
         return this.name;
+    }
+
+    public ToolInstance getTool() {
+        return this.tool;
     }
 }
