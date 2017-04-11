@@ -2,38 +2,36 @@
  * Created by mdaigle on 4/5/17.
  */
 public class Table {
-    private Column[] cols;
     private String name;
-    private Tool tool;
+    private ToolInstance tool;
 
-    public Table(String name, int num_cols) {
-        this.cols = new Column[num_cols];
-
-        for (int i = 0; i < num_cols; i++) {
-            this.cols[i] = new Column(this, i + "");
-        }
-
+    /**
+     * Creates a new base Table.
+     * @param name
+     * @param pm
+     */
+    public Table(String name, ProvenanceManager pm) {
         this.name = name;
+        pm.addTable(this);
     }
 
-    public Table(String name, int num_cols, Tool tool, ProvenanceManager pm) {
-        this(name, num_cols);
+    /**
+     * Creates a new derived Table and records its dependencies
+     * @param name
+     * @param tool
+     * @param pm
+     */
+    public Table(String name, ToolInstance tool, ProvenanceManager pm) {
+        this.name = name;
         this.tool = tool;
-
-        for (Column col : this.tool.getCols()) {
-            pm.addDependency(col, this);
-        }
+        pm.addTable(this, tool);
     }
 
-    public int getNumCols() {
-        return this.cols.length;
-    }
-
-    public Column[] getCols() {
-        return cols;
-    }
-
-    public Column getCol(int index) {
-        return cols[index];
+    /**
+     * Returns the table's name.
+     * @return the table's name
+     */
+    public String getName() {
+        return this.name;
     }
 }

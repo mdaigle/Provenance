@@ -1,26 +1,40 @@
-import java.util.ArrayList;
-
 /**
  * Created by mdaigle on 4/5/17.
  */
 public class Tool {
-    private ArrayList<Column> cols;
+    /**
+     * The name of this tool.
+     */
+    private String name;
 
-    public Tool(ArrayList<Column> cols) {
-        this.cols = cols;
+    /**
+     * The number of tables this tool takes as input.
+     */
+    private int numTables;
+
+    /**
+     * Creates a new Tool with given name and expected number of input tables.
+     * @param name
+     * @param numTables
+     */
+    public Tool(String name, int numTables) {
+        this.name = name;
+        this.numTables = numTables;
     }
 
-    public Tool(Table[] tables) {
-        this.cols = new ArrayList<>();
-
-        for (Table table : tables) {
-            for (Column col : table.getCols()) {
-                this.cols.add(col);
-            }
-        }
+    /**
+     * Returns the name of this tool.
+     * @return
+     */
+    public String getName() {
+        return this.name;
     }
 
-    public ArrayList<Column> getCols() {
-        return this.cols;
+    /**
+     * Returns the number of tables this tool takes as input.
+     * @return
+     */
+    public int getNumTables() {
+        return this.numTables;
     }
 }
