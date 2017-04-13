@@ -4,6 +4,8 @@ import java.util.*;
  * Created by mdaigle on 4/5/17.
  */
 public class ProvenanceManager {
+    private DbManager dbManager;
+
     /**
      * All tables managed by this provenance manager.
      */
@@ -26,6 +28,14 @@ public class ProvenanceManager {
         this.tables = new HashSet<>();
         this.dependencies = new HashMap<>();
         this.tools = new HashSet<>();
+    }
+
+    public void initializeDb() {
+        // TODO: add parameter for connection string
+        this.dbManager = new DbManager(DbManager.DEFAULT_DB_CONNECTION_STRING);
+        this.dbManager.initializeDb();
+
+        Collection<Tool> storedTools = this.dbManager.getTools();
     }
 
     /**
@@ -76,6 +86,9 @@ public class ProvenanceManager {
             return false;
         }
 
+        // Create the table in the database
+        this.dbManager.createTable(table);
+
         return this.tables.add(table);
     }
 
@@ -96,6 +109,9 @@ public class ProvenanceManager {
         for (Table base : ti.getTables()) {
             this.addDependency(base, derived);
         }
+
+        // Create the table in the database
+        this.dbManager.createTable(derived);
 
         return true;
     }
@@ -140,5 +156,6 @@ public class ProvenanceManager {
      */
     public void addTool(Tool tool) {
         this.tools.add(tool);
+        this.dbManager.addTool(tool);
     }
 }
