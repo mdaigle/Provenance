@@ -25,17 +25,31 @@ public class ProvenanceManager {
      * Create a new provenance manager.
      */
     public ProvenanceManager() {
+        // TODO: add parameter for connection string?
         this.tables = new HashSet<>();
         this.dependencies = new HashMap<>();
         this.tools = new HashSet<>();
+        this.dbManager = new DbManager(DbManager.SYSTEM_DB_CONNECTION_STRING, DbManager.DATA_DB_CONNECTON_STRING);
     }
 
-    public void initializeDb() {
-        // TODO: add parameter for connection string
-        this.dbManager = new DbManager(DbManager.DEFAULT_DB_CONNECTION_STRING);
+    /**
+     * Initializes the backing database and loads stored state.
+     */
+    public void initialize() {
+        // Create system tables
         this.dbManager.initializeDb();
 
+        // Load stored tables
+        Collection<Table> storedTables = this.dbManager.getTables();
+        if (storedTables != null) {
+            this.tables.addAll(storedTables);
+        }
+
+        // Load stored tools
         Collection<Tool> storedTools = this.dbManager.getTools();
+        if (storedTools != null) {
+            this.tools.addAll(storedTools);
+        }
     }
 
     /**
