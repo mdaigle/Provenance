@@ -4,6 +4,7 @@ import java.util.Set;
 public class Main {
     public static void main(String[] args) {
         ProvenanceManager pm = new ProvenanceManager();
+        pm.initializeDb();
 
         while(true) {
             Scanner s = new Scanner(System.in);
