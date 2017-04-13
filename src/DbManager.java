@@ -1,3 +1,5 @@
+import sun.tools.jconsole.Tab;
+
 import java.sql.*;
 import java.util.Collection;
 import java.util.HashSet;
@@ -7,7 +9,8 @@ import java.util.HashSet;
  */
 public class DbManager {
     private static final String SQL_CLASS = "org.sqlite.JDBC";
-    public static final String DEFAULT_DB_CONNECTION_STRING = "jdbc:sqlite:test.db";
+    public static final String SYSTEM_DB_CONNECTION_STRING = "jdbc:sqlite:system.db";
+    public static final String DATA_DB_CONNECTON_STRING = "jdbc:sqlite:data.db";
 
     /**
      * SQL statement to create the tools table.
@@ -21,25 +24,30 @@ public class DbManager {
      * SQL statement to create a data table.
      */
     private static final String CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS ?" +
-            "(ID                INTEGER     PRIMARY KEY";
+            "(ID                INTEGER     PRIMARY KEY, " +
+            "VALUE              INTEGER     UNSIGNED)";
 
     private static final String ADD_TOOL_SQL = "INSERT INTO Tools VALUES" +
             "(NULL, ?, ?)";
 
     private static final String GET_TOOLS_SQL = "SELECT * FROM TOOLS";
 
+    private static final String GET_TABLES_SQL = "SELECT name FROM sqlite_master WHERE type='table'";
+
     /**
      * SQL statement to insert a row into a data table.
      */
     private static final String INSERT_ROW_SQL = "INSERT INTO ? VALUES (?)";
 
-    private String connectionString;
+    private String systemConnection;
+    private String dataConnection;
 
     /**
      * Creates a new DbManager and initializes its connection to test.db.
      */
-    public DbManager(String connectionString) {
-        this.connectionString = connectionString;
+    public DbManager(String systemConnection, String dataConnection) {
+        this.systemConnection = systemConnection;
+        this.dataConnection = dataConnection;
     }
 
     /**
@@ -50,7 +58,7 @@ public class DbManager {
         try {
             // Open a connection to the db
             Class.forName(SQL_CLASS);
-            conn = DriverManager.getConnection(connectionString);
+            conn = DriverManager.getConnection(systemConnection);
 
             // Create Tools table
             Statement s = conn.createStatement();
@@ -68,12 +76,13 @@ public class DbManager {
         try {
             // Open a connection to the db
             Class.forName(SQL_CLASS);
-            conn = DriverManager.getConnection(connectionString);
+            conn = DriverManager.getConnection(dataConnection);
 
             // Create the table
-            PreparedStatement s = conn.prepareStatement(CREATE_TABLE_SQL);
-            s.setString(1, table.getName());
-            s.executeUpdate();
+            // (Can't do substitution for table names, so do string replace instead)
+            String SQL = CREATE_TABLE_SQL.replace("?", table.getName());
+            Statement s = conn.createStatement();
+            s.executeUpdate(SQL);
 
             conn.close();
         } catch ( Exception e ) {
@@ -87,7 +96,7 @@ public class DbManager {
         try {
             // Open a connection to the db
             Class.forName(SQL_CLASS);
-            conn = DriverManager.getConnection(connectionString);
+            conn = DriverManager.getConnection(systemConnection);
 
             // Create the table
             PreparedStatement s = conn.prepareStatement(ADD_TOOL_SQL);
@@ -107,7 +116,7 @@ public class DbManager {
         try {
             // Open a connection to the db
             Class.forName(SQL_CLASS);
-            conn = DriverManager.getConnection(connectionString);
+            conn = DriverManager.getConnection(systemConnection);
 
             // Create the table
             Statement s = conn.createStatement();
@@ -132,17 +141,46 @@ public class DbManager {
         return null;
     }
 
+    public Collection<Table> getTables() {
+        Connection conn;
+        try {
+            // Open a connection to the db
+            Class.forName(SQL_CLASS);
+            conn = DriverManager.getConnection(dataConnection);
+
+            // Create the table
+            Statement s = conn.createStatement();
+            ResultSet results = s.executeQuery(GET_TABLES_SQL);
+
+            HashSet<Table> tables = new HashSet<>();
+            while (results.next()) {
+                //TODO: zero-indexed?
+                String name = results.getString(1);
+
+                Table table = new Table(name);
+                tables.add(table);
+            }
+
+            conn.close();
+            return tables;
+        } catch ( Exception e ) {
+            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+            System.exit(0);
+        }
+        return null;
+    }
+
     public void addRow(Table table, int rowValue) {
         Connection conn;
         try {
             // Open a connection to the db
             Class.forName(SQL_CLASS);
-            conn = DriverManager.getConnection(connectionString);
+            conn = DriverManager.getConnection(dataConnection);
 
             // Create the table
-            PreparedStatement s = conn.prepareStatement(CREATE_TABLE_SQL);
+            /*PreparedStatement s = conn.prepareStatement();
             s.setString(1, table.getName());
-            s.executeUpdate();
+            s.executeUpdate();*/
 
             conn.close();
         } catch ( Exception e ) {
