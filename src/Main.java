@@ -4,7 +4,7 @@ import java.util.Set;
 public class Main {
     public static void main(String[] args) {
         ProvenanceManager pm = new ProvenanceManager();
-        pm.initializeDb();
+        pm.initialize();
 
         while(true) {
             Scanner s = new Scanner(System.in);
@@ -52,10 +52,8 @@ public class Main {
         System.out.println("Tools:");
 
         for (Tool t : tools) {
-            System.out.printf("%s (%d inputs)", t.getName(), t.getNumTables());
+            System.out.printf("%s (%d inputs)\n", t.getName(), t.getNumTables());
         }
-
-        System.out.println("\n");
     }
 
     private static void listTables(ProvenanceManager pm) {
