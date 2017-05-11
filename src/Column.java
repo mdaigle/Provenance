@@ -3,19 +3,13 @@
  */
 public class Column {
 
-    private Table table;
-    private String name;
+    public final String tableName;
+    public final String name;
+    public final int type;
 
-    public Column(Table table, String name) {
-        this.table = table;
+    public Column(String tableName, String name, int type) {
+        this.tableName = tableName;
         this.name = name;
-    }
-
-    public Table getTable() {
-        return this.table;
-    }
-
-    public String getName() {
-        return this.name;
+        this.type = type;
     }
 }

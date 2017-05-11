@@ -1,5 +1,8 @@
+import java.sql.ResultSet;
+
 /**
- * Created by mdaigle on 4/5/17.
+ *  Represents a real table in the data-database. Each Table should have a unique name (used as identifier).
+ *  TODO: hash id instead or something, because user generated ids suck
  */
 public class Table {
     private String name;
@@ -29,10 +32,18 @@ public class Table {
      * @return the table's name
      */
     public String getName() {
-        return this.name;
+        return name;
     }
 
     public ToolInstance getTool() {
-        return this.tool;
+        return tool;
+    }
+
+    public ResultSet getRows() {
+        return ProvenanceSystem.getDbManager().getAllRows(name);
+    }
+
+    public Schema getSchema() {
+        return ProvenanceSystem.getDbManager().getSchema(name);
     }
 }

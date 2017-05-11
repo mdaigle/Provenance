@@ -1,11 +1,9 @@
 import java.util.*;
 
 /**
- * Created by mdaigle on 4/5/17.
+ * An in-memory table-table level provenance modeler and manager
  */
 public class ProvenanceManager {
-    private DbManager dbManager;
-
     /**
      * All tables managed by this provenance manager.
      */
@@ -29,18 +27,15 @@ public class ProvenanceManager {
         this.tables = new HashSet<>();
         this.dependencies = new HashMap<>();
         this.tools = new HashSet<>();
-        this.dbManager = new DbManager(DbManager.SYSTEM_DB_CONNECTION_STRING, DbManager.DATA_DB_CONNECTON_STRING);
     }
 
     /**
      * Initializes the backing database and loads stored state.
      */
     public void initialize() {
-        // Create system tables
-        this.dbManager.initializeDb();
-
+        //TODO: need to do anything here?
         // Load stored tables
-        Collection<Table> storedTables = this.dbManager.getTables();
+        /*Collection<Table> storedTables = this.dbManager.getTables();
         if (storedTables != null) {
             this.tables.addAll(storedTables);
         }
@@ -49,7 +44,7 @@ public class ProvenanceManager {
         Collection<Tool> storedTools = this.dbManager.getTools();
         if (storedTools != null) {
             this.tools.addAll(storedTools);
-        }
+        }*/
     }
 
     /**
@@ -101,7 +96,7 @@ public class ProvenanceManager {
         }
 
         // Create the table in the database
-        this.dbManager.createTable(table);
+        ProvenanceSystem.getDbManager().createTable(table);
 
         return this.tables.add(table);
     }
@@ -125,7 +120,7 @@ public class ProvenanceManager {
         }
 
         // Create the table in the database
-        this.dbManager.createTable(derived);
+        ProvenanceSystem.getDbManager().createTable(derived);
 
         return true;
     }
@@ -170,6 +165,6 @@ public class ProvenanceManager {
      */
     public void addTool(Tool tool) {
         this.tools.add(tool);
-        this.dbManager.addTool(tool);
+        ProvenanceSystem.getDbManager().addTool(tool);
     }
 }
