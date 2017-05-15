@@ -1,4 +1,4 @@
-import java.sql.ResultSet;
+import java.util.ArrayList;
 
 /**
  *  Represents a real table in the data-database. Each Table should have a unique name (used as identifier).
@@ -39,8 +39,18 @@ public class Table {
         return tool;
     }
 
-    public ResultSet getRows() {
+    public ArrayList<Tuple> getRows() {
         return ProvenanceSystem.getDbManager().getAllRows(name);
+    }
+
+    public void addRows(ArrayList<Tuple> rows) {
+        for (Tuple t : rows) {
+            this.addRow(t);
+        }
+    }
+
+    public void addRow(Tuple t) {
+        ProvenanceSystem.getDbManager().addRow(this, t);
     }
 
     public Schema getSchema() {
