@@ -78,8 +78,11 @@ public class Tool {
 
         RawToolOutput rto = this.invokeProcess(pb);
 
+        // Figure out how many columns are in the output csv
+        int numOutputCols = rto.csv.split("\n", 2)[0].split(",").length;
+
         String outputCsv = rto.csv;
-        TableMetadata outputMetadata = TableMetadata.fromCondensed(rto.condensedMetadata, toolId, params);
+        TableMetadata outputMetadata = TableMetadata.fromCondensed(rto.condensedMetadata, numOutputCols, toolId, params);
 
         return new ToolOutput(outputCsv, outputMetadata);
     }

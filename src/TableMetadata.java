@@ -2,6 +2,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import jdk.internal.util.xml.impl.Input;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 /**
@@ -32,10 +33,15 @@ public class TableMetadata {
      * @param inputTables
      * @param parameters
      */
-    public TableMetadata(int numCols, int toolId, InputTableMetadata[] inputTables, Parameter[] parameters) {
+    public TableMetadata(int numCols, int toolId, ArrayList<InputTableMetadata> inputTables, Parameter[] parameters) {
         this.numCols = numCols;
         this.toolId = toolId;
-        this.inputTables = inputTables;
+
+        this.inputTables = new InputTableMetadata[inputTables.size()];
+        for (int i = 0; i < inputTables.size(); i++) {
+            this.inputTables[i] = inputTables.get(i);
+        }
+
         this.parameters = parameters;
     }
 
@@ -60,18 +66,15 @@ public class TableMetadata {
      * @param condensed
      * @return
      */
-    public static TableMetadata fromCondensed(String condensed, int toolId, Parameter[] params) {
+    public static TableMetadata fromCondensed(String condensed, int numCols, int toolId, Parameter[] params) {
         String[] lines = condensed.split("\n");
 
-        int numCols = lines.length > 0 ? Integer.parseInt(lines[0]) : 0;
-
-        ArrayList<InputTableMetadata> inputTables = new ArrayList<>();
-        for (int i = 1; i < lines.length; i++) {
-            String[] components = lines[i].split(" ", 1);
+        ArrayList<InputTableMetadata> inputTablesArray = new ArrayList<>();
+        for (int i = 0; i < lines.length; i++) {
+            String[] components = lines[i].split("\t");
             InputTableMetadata input = new InputTableMetadata(components[0], components[1]);
-            inputTables.add(input);
+            inputTablesArray.add(input);
         }
-        InputTableMetadata[] inputTablesArray = (InputTableMetadata[]) inputTables.toArray();
 
         return new TableMetadata(numCols, toolId, inputTablesArray, params);
     }

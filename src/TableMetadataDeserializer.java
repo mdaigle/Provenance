@@ -1,6 +1,8 @@
 import com.google.gson.*;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Collections;
 
 /**
  * Created by mdaigle on 5/20/17.
@@ -18,6 +20,9 @@ public class TableMetadataDeserializer implements JsonDeserializer<TableMetadata
             JsonObject jsonTable = jsonInputTableMetadata.get(i).getAsJsonObject();
             inputTableMetadata[i] = jsonDeserializationContext.deserialize(jsonTable, InputTableMetadata.class);
         }
+        //TODO: just make a second constructor
+        ArrayList<InputTableMetadata> inputTableMetadataArray = new ArrayList<>();
+        Collections.addAll(inputTableMetadataArray, inputTableMetadata);
 
         JsonArray jsonParameters = jsonObject.get("parameters").getAsJsonArray();
         Parameter[] parameters = new Parameter[jsonParameters.size()];
@@ -27,6 +32,6 @@ public class TableMetadataDeserializer implements JsonDeserializer<TableMetadata
             Type paramClass = Parameter.getClassForType(parameterType);
             parameters[i] = jsonDeserializationContext.deserialize(jsonParam, paramClass);
         }
-        return new TableMetadata(numCols, toolId, inputTableMetadata, parameters);
+        return new TableMetadata(numCols, toolId, inputTableMetadataArray, parameters);
     }
 }
