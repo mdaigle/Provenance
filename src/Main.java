@@ -4,16 +4,15 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Main {
-    public static final String BASE_DIR = "/Users/mdaigle/Desktop/provenance/";
+    static final String BASE_DIR = "/Users/mdaigle/Desktop/provenance/";
 
     public static void main(String[] args) {
+        ProvenanceSystem.initialize();
+
         while(true) {
             Scanner s = new Scanner(System.in);
             System.out.print("Enter an option: ");
@@ -31,6 +30,9 @@ public class Main {
                     break;
                 case 3:
                     runTool(s);
+                    break;
+                case 4:
+                    createTool(s);
                     break;
             }
         }
@@ -87,19 +89,29 @@ public class Main {
     }
 
     private static void runTool(Scanner s) {
-        // Get tool name, csv names, and a name for the output table
-        // TODO: ask for input for parameters too
-        System.out.print("Enter tool name: ");
-        String toolName = s.next();
+        // Get tool name, params, csv names, and a name for the output table
+        System.out.print("Enter tool id: ");
+        String toolId = s.next();
 
-        File toolFile = new File(BASE_DIR + toolName + ".jar");
+        Tool tool = ProvenanceSystem.getDbManager().getToolById(Integer.parseInt(toolId));
+
+        File toolFile = new File(BASE_DIR + tool.getName() + ".jar");
         if (!toolFile.exists()) {
             System.out.println("Invalid tool name");
             return;
         }
 
         //TODO: read this off the tool entry in the db
-        int numTables = 1;
+        int numParams = tool.getNumParams();
+        Parameter[] params = new Parameter[numParams];
+        for (int i = 0; i < numParams; i++) {
+            System.out.printf("Param %d: ", i);
+            String val = s.next();
+            params[i] = new Parameter(tool.getParamTypes().get(i), val);
+        }
+
+        //TODO: read this off the tool entry in the db
+        int numTables = tool.getNumTables();
         Table[] inputTables = new Table[numTables];
 
         for (int i = 0; i < numTables; i++ ) {
@@ -135,9 +147,8 @@ public class Main {
         System.out.print("Enter name for output table: ");
         String outputFileName = s.next();
 
-        //TODO: this shouldn't be hardcoded. read from database.
-        Tool tool = new Tool(1, toolName, numTables);
-        Tool.ToolOutput output = tool.run(inputTables, new Parameter[]{});
+        // Run the tool
+        Tool.ToolOutput output = tool.run(inputTables, params);
 
         // Write out the csv
         File outFile = new File(BASE_DIR + outputFileName + ".csv");
@@ -171,6 +182,35 @@ public class Main {
         }
 
         System.out.println("Tool ran successfully");
+    }
+
+    private static void createTool(Scanner s) {
+        //name, num input, num params, param types
+        System.out.print("Enter tool name: ");
+        String toolName = s.next();
+
+        System.out.print("Enter num input tables: ");
+        Integer numInputTables = s.nextInt();
+
+        System.out.print("Enter num parameters: ");
+        Integer numParameters = s.nextInt();
+
+        System.out.print("Enter parameter types: ");
+        String parameterTypesString = s.next();
+
+        List<Parameter.ParameterType> parameterTypes;
+        try {
+            parameterTypes = Arrays.stream(parameterTypesString.split(","))
+                    .map(Parameter.ParameterType::valueOf)
+                    .collect(Collectors.toList());
+        } catch (IllegalArgumentException e) {
+            System.out.println("Illegal parameter type. Valid types are STRING, INTEGER, and PREDICATE");
+            return;
+        }
+
+        Tool tool = new Tool(0, toolName, numInputTables, numParameters, parameterTypes);
+
+        ProvenanceSystem.getDbManager().addTool(tool);
     }
 
     private static String getCSVSubset(String csv, String[] columns) {
