@@ -1,13 +1,13 @@
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Stream;
 
-/**
- * Created by mdaigle on 4/5/17.
- */
 public class Tool {
     private static final String DEFAULT_TOOL_FILE_EXTENSION = ".jar";
-    private static final String DEFAULT_TOOL_START_COMMAND = "java -jar";
+    private static final String DEFAULT_TOOL_RUNNER = "java";
+    private static final String DEFAULT_TOOL_RUNNER_OPTION = "-jar";
 
     /**
      * The id of this tool.
@@ -23,6 +23,8 @@ public class Tool {
      * The number of tables this tool takes as input.
      */
     private int numTables;
+    private int numParams;
+    private List<Parameter.ParameterType> paramTypes;
 
     public class ToolOutput {
         public String csv;
@@ -53,10 +55,12 @@ public class Tool {
      * @param name
      * @param numTables
      */
-    public Tool(int toolId, String name, int numTables) {
+    public Tool(int toolId, String name, int numTables, int numParams, List<Parameter.ParameterType> paramTypes) {
         this.toolId = toolId;
         this.name = name;
         this.numTables = numTables;
+        this.numParams = numParams;
+        this.paramTypes = paramTypes;
     }
 
     /**
@@ -69,18 +73,21 @@ public class Tool {
         String fileName = this.getFileName();
         String[] args = this.getArgs(inputTables, params);
 
-        String[] javaCommand = new String[]{"java", "-jar", fileName};
+        // Build the command
+        String[] javaCommand = new String[]{DEFAULT_TOOL_RUNNER, DEFAULT_TOOL_RUNNER_OPTION, fileName};
         String[] command = Stream.concat(Arrays.stream(javaCommand), Arrays.stream(args)).toArray(String[]::new);
 
-
+        // Build the process
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.redirectErrorStream(true);
 
+        // Invoke the process
         RawToolOutput rto = this.invokeProcess(pb);
 
         // Figure out how many columns are in the output csv
         int numOutputCols = rto.csv.split("\n", 2)[0].split(",").length;
 
+        // Build the output metadata
         String outputCsv = rto.csv;
         TableMetadata outputMetadata = TableMetadata.fromCondensed(rto.condensedMetadata, numOutputCols, toolId, params);
 
@@ -98,19 +105,25 @@ public class Tool {
     /**
      * Creates an argument string.
      * @param inputTables
-     * @param getParams
+     * @param params
      * @return
      */
-    private String[] getArgs(Table[] inputTables, Parameter[] getParams) {
-        String[] args = new String[inputTables.length * 2];
-        for (int i = 0; i < inputTables.length; i++) {
-            args[2*i] = inputTables[i].getId();
-            args[2*i + 1] = inputTables[i].getCSV();
+    private static String[] getArgs(Table[] inputTables, Parameter[] params) {
+        ArrayList<String> args = new ArrayList<>();
+
+        args.add(String.format("%d", params.length));
+        args.add(String.format("%d", inputTables.length));
+
+        for (Parameter p : params) {
+            args.add(p.getValue());
         }
 
-        //TODO: add parameters to argument array somehow
+        for (int i = 0; i < inputTables.length; i++) {
+            args.add(inputTables[i].getId());
+            args.add(inputTables[i].getCSV());
+        }
 
-        return args;
+        return args.toArray(new String[]{});
     }
 
     /**
@@ -180,5 +193,17 @@ public class Tool {
      */
     public int getNumTables() {
         return this.numTables;
+    }
+
+    public int getNumParams() {
+        return numParams;
+    }
+
+    public List<Parameter.ParameterType> getParamTypes() {
+        return paramTypes;
+    }
+
+    public int getToolId() {
+        return toolId;
     }
 }
