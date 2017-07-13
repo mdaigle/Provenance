@@ -1,7 +1,6 @@
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Manages tools and data tables.
@@ -11,9 +10,11 @@ public class DbManager {
      * SQL statement to create the tools table.
      */
     private static final String CREATE_TOOLS_TABLE_SQL = "CREATE TABLE IF NOT EXISTS Tools" +
-            "(ID                INTEGER     PRIMARY KEY, " +
-            "NAME               TEXT        NOT NULL, " +
-            "NUM_INPUT_TABLES   INTEGER     UNSIGNED)";
+            "(ID                INTEGER     PRIMARY KEY," +
+            "NAME               TEXT        NOT NULL," +
+            "NUM_INPUT_TABLES   INTEGER     UNSIGNED," +
+            "NUM_PARAMETERS     INTEGER     UNSIGNED," +
+            "PARAMETER_TYPES    TEXT        NOT NULL)";
 
     /**
      * SQL statement to create a data table.
@@ -26,12 +27,17 @@ public class DbManager {
      * SQL statement to add a tool.
      */
     private static final String ADD_TOOL_SQL = "INSERT INTO Tools VALUES" +
-            "(NULL, ?, ?)";
+            "(NULL, ?, ?, ?, ?)";
 
     /**
      * SQL statement to get all tools.
      */
     private static final String GET_TOOLS_SQL = "SELECT * FROM TOOLS";
+
+    /**
+     * SQL statement to get a tool by id.
+     */
+    private static final String GET_TOOL_BY_ID_SQL = "SELECT * FROM TOOLS WHERE id=?";
 
     /**
      * SQL statment to get all tables.
@@ -113,6 +119,11 @@ public class DbManager {
             PreparedStatement s = conn.prepareStatement(ADD_TOOL_SQL);
             s.setString(1, tool.getName());
             s.setInt(2, tool.getNumTables());
+            s.setInt(3, tool.getNumParams());
+            s.setString(4, tool.getParamTypes()
+                    .stream()
+                    .map(Parameter.ParameterType::toString)
+                    .collect(Collectors.joining()));
             s.executeUpdate();
 
             conn.close();
@@ -135,16 +146,47 @@ public class DbManager {
 
             HashSet<Tool> tools = new HashSet<>();
             while (results.next()) {
-                //TODO: zero-indexed?
                 String name = results.getString(2);
                 int numTables = results.getInt(3);
 
-                Tool tool = new Tool(name, numTables);
-                tools.add(tool);
+                //Tool tool = new Tool(name, numTables);
+                tools.add(null);
             }
 
             conn.close();
             return tools;
+        } catch ( Exception e ) {
+            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+            System.exit(0);
+        }
+        return null;
+    }
+
+    public Tool getToolById(int toolId) {
+        Connection conn;
+        try {
+            // Open a connection to the db
+            Class.forName(sqlClass);
+            conn = DriverManager.getConnection(systemConnection);
+
+            // Create the table
+            PreparedStatement s = conn.prepareStatement(GET_TOOL_BY_ID_SQL);
+            s.setInt(1, toolId);
+            ResultSet results = s.executeQuery();
+
+            while (results.next()) {
+                String toolName = results.getString(2);
+                int numInputTables = results.getInt(3);
+                int numParameters = results.getInt(4);
+                String parameterTypesString = results.getString(5);
+                List<Parameter.ParameterType> parameterTypes = Arrays.stream(parameterTypesString.split(","))
+                        .map(Parameter.ParameterType::valueOf)
+                        .collect(Collectors.toList());
+
+                Tool tool = new Tool(toolId, toolName, numInputTables, numParameters, parameterTypes);
+
+                return tool;
+            }
         } catch ( Exception e ) {
             System.err.println( e.getClass().getName() + ": " + e.getMessage() );
             System.exit(0);
@@ -168,8 +210,8 @@ public class DbManager {
                 //TODO: zero-indexed?
                 String name = results.getString(1);
 
-                Table table = new Table(name);
-                tables.add(table);
+                //Table table = new Table(name);
+                tables.add(null);
             }
 
             conn.close();
@@ -181,19 +223,27 @@ public class DbManager {
         return null;
     }
 
-    public ResultSet getAllRows(String tableName) {
+    public ArrayList<Tuple> getAllRows(String tableName) {
+        Schema schema = this.getSchema(tableName);
+
         Connection conn;
         try {
             // Open a connection to the db
             Class.forName(sqlClass);
             conn = DriverManager.getConnection(dataConnection);
 
-            // Create the table
+            // Get the rows
             Statement s = conn.createStatement();
             ResultSet results = s.executeQuery(GET_ALL_ROWS_SQL);
 
             conn.close();
-            return results;
+
+            ArrayList<Tuple> rows = new ArrayList<>();
+            while(results.next()) {
+                Tuple t = new Tuple(schema, results);
+                rows.add(t);
+            }
+            return rows;
         } catch ( Exception e ) {
             System.err.println( e.getClass().getName() + ": " + e.getMessage() );
             System.exit(0);
@@ -201,7 +251,7 @@ public class DbManager {
         return null;
     }
 
-    public void addRow(Table table, int rowValue) {
+    public void addRow(Table table, Tuple t) {
         Connection conn;
         try {
             // Open a connection to the db
