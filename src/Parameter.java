@@ -1,23 +1,56 @@
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import java.lang.reflect.Type;
 
-/**
- * Created by mdaigle on 5/17/17.
- */
-public abstract class Parameter {
+public class Parameter {
+    private ParameterType type;
+    private String value;
+
     enum ParameterType {
         STRING, INTEGER, PREDICATE
     }
 
-    abstract Object getValue();
+    Parameter(ParameterType type, String value) {
+        this.type = type;
+        this.value = value;
+    }
 
-    abstract ParameterType getType();
+    public String getValue() {
+        return value;
+    }
 
-    public static Type getClassForType(ParameterType type) {
+    public ParameterType getType() {
+        return type;
+    }
+
+    static Type getClassForType(ParameterType type) {
         switch (type) {
             case STRING:
-                return StringParameter.class;
+                return StringField.class;
+            case INTEGER:
+                return IntField.class;
+            case PREDICATE:
+                return Predicate.class;
             default:
-                return null;
+                throw new IllegalArgumentException("Invalid type");
         }
+    }
+
+    public String toJSON() {
+        Gson gson = new Gson();
+        String json = gson.toJson(this);
+        return json;
+    }
+
+    /**
+     * Deserializes the provided Parameter serialization.
+     * @param json
+     */
+    public static Parameter fromJson(String json) {
+        GsonBuilder gsonBuilder = new GsonBuilder();
+        gsonBuilder.registerTypeAdapter(Parameter.class, new ParameterDeserializer());
+        Gson gson = gsonBuilder.create();
+        return gson.fromJson(json, Parameter.class);
     }
 }
