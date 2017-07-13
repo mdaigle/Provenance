@@ -4,9 +4,6 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 
-/**
- * Created by mdaigle on 5/20/17.
- */
 public class TableMetadataDeserializer implements JsonDeserializer<TableMetadata> {
     @Override
     public TableMetadata deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
