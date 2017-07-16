@@ -11,7 +11,7 @@ public class DbManager {
      */
     private static final String CREATE_TOOLS_TABLE_SQL = "CREATE TABLE IF NOT EXISTS Tools" +
             "(ID                INTEGER     PRIMARY KEY," +
-            "NAME               TEXT        NOT NULL," +
+            "NAME               TEXT        KEY," +
             "NUM_INPUT_TABLES   INTEGER     UNSIGNED," +
             "NUM_PARAMETERS     INTEGER     UNSIGNED," +
             "PARAMETER_TYPES    TEXT        NOT NULL)";
@@ -42,6 +42,11 @@ public class DbManager {
      * SQL statement to get a tool by id.
      */
     private static final String GET_TOOL_BY_ID_SQL = "SELECT * FROM TOOLS WHERE id=?";
+
+    /**
+     * SQL statement to get a tool by name.
+     */
+    private static final String GET_TOOL_BY_NAME_SQL = "SELECT * FROM TOOLS WHERE name=?";
 
     /**
      * SQL statment to get all tables.
@@ -201,6 +206,35 @@ public class DbManager {
 
             while (results.next()) {
                 String toolName = results.getString(2);
+                int numInputTables = results.getInt(3);
+                int numParameters = results.getInt(4);
+                String parameterTypesString = results.getString(5);
+                List<Parameter.ParameterType> parameterTypes = Arrays.stream(parameterTypesString.split(","))
+                        .map(Parameter.ParameterType::valueOf)
+                        .collect(Collectors.toList());
+
+                Tool tool = new Tool(toolId, toolName, numInputTables, numParameters, parameterTypes);
+
+                return tool;
+            }
+
+            conn.close();
+        } catch ( Exception e ) {
+            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+            System.exit(0);
+        }
+        return null;
+    }
+
+    public Tool getToolByName(String toolName) {
+        try (Connection conn = DriverManager.getConnection(systemConnection)){
+            // Create the table
+            PreparedStatement s = conn.prepareStatement(GET_TOOL_BY_NAME_SQL);
+            s.setString(1, toolName);
+            ResultSet results = s.executeQuery();
+
+            while (results.next()) {
+                int toolId = results.getInt(1);
                 int numInputTables = results.getInt(3);
                 int numParameters = results.getInt(4);
                 String parameterTypesString = results.getString(5);

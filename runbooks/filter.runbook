@@ -1,19 +1,23 @@
 [
   {
-  "tool":
-    {
-    
-    },
-  "parameters":
-    [
+    "toolName": "tfe",
+    "parameters":[
+      {
+        "type":"STRING",
+        "value":"1"
+      },
+      {
+        "type":"STRING",
+        "value":"hello"
+      }
     ],
-  "inputFileNames":
-    [
+    "inputFileNames":[
       "csv1"
     ],
-  "inputFileColumns":
+    "inputFileColumns":
     [
       ["1", "2"]
-    ]
+    ],
+    "outputFileName": "filterRunBookOut"
   }
 ]

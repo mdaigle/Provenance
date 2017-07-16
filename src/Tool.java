@@ -1,4 +1,6 @@
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -168,6 +170,39 @@ public class Tool {
         }
 
         return builder.toString();
+    }
+
+    public static void writeOutput(String outputFileName, ToolOutput output) {
+        // Write out the csv
+        File outFile = new File(Main.DATA_DIR + outputFileName + ".csv");
+        File metadataFile = new File(Main.DATA_DIR + outputFileName + ".metadata");
+        try {
+            // Delete so we don't have to do some janky overwrite thing
+            outFile.delete();
+            outFile.createNewFile();
+            metadataFile.delete();
+            metadataFile.createNewFile();
+        }
+        catch (IOException e) {
+            System.out.println("Error creating output file");
+            System.out.println(e.getMessage());
+        }
+
+        try {
+            // Flush so that the csv isn't lost when the object is overwritten
+            BufferedWriter writer = new BufferedWriter(new FileWriter(outFile));
+            writer.write(output.csv);
+            writer.flush();
+
+            writer = new BufferedWriter(new FileWriter(metadataFile));
+            writer.write(output.metadata.toJSON());
+            writer.flush();
+
+            writer.close();
+        } catch (IOException e) {
+            System.out.println("Error writing to output file");
+            System.out.println(e.getMessage());
+        }
     }
 
     /*private String generateMetadataJSON(int numCols, Table[] inputTables, Parameter[] params) {

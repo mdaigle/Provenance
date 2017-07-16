@@ -1,14 +1,16 @@
 public class Step {
-    private Tool tool;
+    private String toolName;
     private Parameter[] parameters;
     private String[] inputFileNames;
     private String[][] inputFileColumns;
+    private String outputFileName;
 
-    public Step(Tool tool, Parameter[] parameters, String[] inputFileNames, String[][] inputFileColumns) {
-        this.tool = tool;
+    public Step(String toolName, Parameter[] parameters, String[] inputFileNames, String[][] inputFileColumns, String outputFileName) {
+        this.toolName = toolName;
         this.parameters = parameters;
         this.inputFileNames = inputFileNames;
         this.inputFileColumns = inputFileColumns;
+        this.outputFileName = outputFileName;
     }
 
     public void run() {
@@ -18,7 +20,11 @@ public class Step {
             inputTables[i] = Table.getTable(inputFileNames[i], inputFileColumns[i]);
         }
 
-        this.tool.run(inputTables, parameters);
+        Tool tool = ProvenanceSystem.getDbManager().getToolByName(toolName);
+
+        Tool.ToolOutput output = tool.run(inputTables, parameters);
+
+        Tool.writeOutput(outputFileName, output);
     }
 
 

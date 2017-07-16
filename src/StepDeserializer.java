@@ -6,11 +6,10 @@ public class StepDeserializer implements JsonDeserializer<Step> {
 
     @Override
     public Step deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
-        Gson gson = new Gson();
+        /*Gson gson = new Gson();
         final JsonObject jsonObject = jsonElement.getAsJsonObject();
 
-        JsonElement toolElement = jsonObject.get("tool");
-        Tool tool = gson.fromJson(toolElement, Tool.class);
+        String toolName = jsonObject.get("toolName").getAsString();
 
         JsonElement paramsElement = jsonObject.get("parameters");
         Parameter[] parameters = gson.fromJson(paramsElement, Parameter[].class);
@@ -21,6 +20,9 @@ public class StepDeserializer implements JsonDeserializer<Step> {
         JsonElement fileColumnsElement = jsonObject.get("inputFileColumns");
         String[][] fileColumns = gson.fromJson(fileColumnsElement, String[][].class);
 
-        return new Step(tool, parameters, fileNames, fileColumns);
+        String outputFileName = jsonObject.get("outputFileName").getAsString();
+
+        return new Step(toolName, parameters, fileNames, fileColumns, outputFileName);*/
+        return null;
     }
 }

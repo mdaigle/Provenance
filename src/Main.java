@@ -43,6 +43,9 @@ public class Main {
                 case 6:
                     readInRunBook(s);
                     break;
+                case 7:
+                    playRunBook(s);
+                    break;
             }
         }
     }
@@ -138,36 +141,7 @@ public class Main {
         // Run the tool
         Tool.ToolOutput output = tool.run(inputTables, params);
 
-        // Write out the csv
-        File outFile = new File(DATA_DIR + outputFileName + ".csv");
-        File metadataFile = new File(DATA_DIR + outputFileName + ".metadata");
-        try {
-            // Delete so we don't have to do some janky overwrite thing
-            outFile.delete();
-            outFile.createNewFile();
-            metadataFile.delete();
-            metadataFile.createNewFile();
-        }
-        catch (IOException e) {
-            System.out.println("Error creating output file");
-            System.out.println(e.getMessage());
-        }
-
-        try {
-            // Flush so that the csv isn't lost when the object is overwritten
-            BufferedWriter writer = new BufferedWriter(new FileWriter(outFile));
-            writer.write(output.csv);
-            writer.flush();
-
-            writer = new BufferedWriter(new FileWriter(metadataFile));
-            writer.write(output.metadata.toJSON());
-            writer.flush();
-
-            writer.close();
-        } catch (IOException e) {
-            System.out.println("Error writing to output file");
-            System.out.println(e.getMessage());
-        }
+        Tool.writeOutput(outputFileName, output);
 
         System.out.println("Tool ran successfully");
     }
@@ -241,12 +215,16 @@ public class Main {
         System.out.print("Enter runbook name: ");
         String runBookName = s.next();
 
-        try {
-            String content = new String(Files.readAllBytes(Paths.get(Main.RUNBOOK_DIR + runBookName + ".runbook")));
-            RunBook rb = RunBook.fromJson(content);
-        } catch (IOException ex) {
-            System.out.println(ex.getMessage());
-        }
+        RunBook.readInRunBook(runBookName);
+    }
+
+    private static void playRunBook(Scanner s) {
+        System.out.print("Enter runbook name: ");
+        String runBookName = s.next();
+
+        RunBook runBook = RunBook.readInRunBook(runBookName);
+
+        runBook.play();
     }
 
     private static void revokeAccessToTable(Scanner s) {
