@@ -105,16 +105,4 @@ public class Tuple implements Serializable {
     {
         return Arrays.asList(fields).iterator();
     }
-    /**
-     * reset the TupleDesc of this tuple
-     * */
-    public void resetTupleDesc(TupleDesc td)
-    {
-        // Shrink fields if necessary
-        if (this.td.numFields() > td.numFields()) {
-            this.fields = Arrays.copyOfRange(this.fields, td.numFields(), this.td.numFields());
-        }
-        // TODO: set to null?
-        this.td = td;
-    }
 }

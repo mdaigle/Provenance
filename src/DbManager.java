@@ -29,6 +29,10 @@ public class DbManager {
     private static final String ADD_TOOL_SQL = "INSERT INTO Tools VALUES" +
             "(NULL, ?, ?, ?, ?)";
 
+    private static final String UPDATE_TOOL_SQL = "UPDATE Tools" +
+            " SET NAME=?, NUM_INPUT_TABLES=?, NUM_PARAMETERS=?, PARAMETER_TYPES=?" +
+            " WHERE ID=?";
+
     /**
      * SQL statement to get all tools.
      */
@@ -133,6 +137,32 @@ public class DbManager {
         }
     }
 
+    public void updateTool(Tool tool) {
+        Connection conn;
+        try {
+            // Open a connection to the db
+            Class.forName(sqlClass);
+            conn = DriverManager.getConnection(systemConnection);
+
+            // Create the table
+            PreparedStatement s = conn.prepareStatement(UPDATE_TOOL_SQL);
+            s.setString(1, tool.getName());
+            s.setInt(2, tool.getNumTables());
+            s.setInt(3, tool.getNumParams());
+            s.setString(4, tool.getParamTypes()
+                    .stream()
+                    .map(Parameter.ParameterType::toString)
+                    .collect(Collectors.joining()));
+            s.setInt(5, tool.getToolId());
+            s.executeUpdate();
+
+            conn.close();
+        } catch ( Exception e ) {
+            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+            System.exit(0);
+        }
+    }
+
     public Collection<Tool> getTools() {
         Connection conn;
         try {
@@ -163,12 +193,7 @@ public class DbManager {
     }
 
     public Tool getToolById(int toolId) {
-        Connection conn;
-        try {
-            // Open a connection to the db
-            Class.forName(sqlClass);
-            conn = DriverManager.getConnection(systemConnection);
-
+        try (Connection conn = DriverManager.getConnection(systemConnection)){
             // Create the table
             PreparedStatement s = conn.prepareStatement(GET_TOOL_BY_ID_SQL);
             s.setInt(1, toolId);
@@ -187,6 +212,8 @@ public class DbManager {
 
                 return tool;
             }
+
+            conn.close();
         } catch ( Exception e ) {
             System.err.println( e.getClass().getName() + ": " + e.getMessage() );
             System.exit(0);

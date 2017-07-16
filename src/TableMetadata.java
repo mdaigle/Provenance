@@ -71,7 +71,8 @@ public class TableMetadata {
 
         ArrayList<InputTableMetadata> inputTablesArray = new ArrayList<>();
         for (int i = 0; i < lines.length; i++) {
-            String[] components = lines[i].split("\t");
+            // component 0 is tableid, component 1 is rows (ALL, >5, or individuals)
+            String[] components = lines[i].split("\t", 2);
             InputTableMetadata input = new InputTableMetadata(components[0], components[1]);
             inputTablesArray.add(input);
         }

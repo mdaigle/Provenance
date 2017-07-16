@@ -25,9 +25,7 @@ public class TableMetadataDeserializer implements JsonDeserializer<TableMetadata
         Parameter[] parameters = new Parameter[jsonParameters.size()];
         for (int i = 0; i < parameters.length; i++) {
             JsonObject jsonParam = jsonParameters.get(i).getAsJsonObject();
-            Parameter.ParameterType parameterType = Parameter.ParameterType.valueOf(jsonParam.get("type").getAsString());
-            Type paramClass = Parameter.getClassForType(parameterType);
-            parameters[i] = jsonDeserializationContext.deserialize(jsonParam, paramClass);
+            parameters[i] = jsonDeserializationContext.deserialize(jsonParam, Parameter.class);
         }
         return new TableMetadata(numCols, toolId, inputTableMetadataArray, parameters);
     }

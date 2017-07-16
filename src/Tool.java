@@ -98,8 +98,8 @@ public class Tool {
      * Get the file name for this tool
      * @return
      */
-    private String getFileName() {
-        return Main.BASE_DIR + this.name + DEFAULT_TOOL_FILE_EXTENSION;
+    public String getFileName() {
+        return Main.TOOL_DIR + this.name + DEFAULT_TOOL_FILE_EXTENSION;
     }
 
     /**

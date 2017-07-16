@@ -1,0 +1,19 @@
+[
+  {
+  "tool":
+    {
+    
+    },
+  "parameters":
+    [
+    ],
+  "inputFileNames":
+    [
+      "csv1"
+    ],
+  "inputFileColumns":
+    [
+      ["1", "2"]
+    ]
+  }
+]

@@ -8,7 +8,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class Main {
-    static final String BASE_DIR = "/Users/mdaigle/Desktop/provenance/";
+    static final String BASE_DIR = "/Users/mdaigle/Mezuri Research/provenance";
+    static final String TOOL_DIR = BASE_DIR + "/tools/";
+    static final String DATA_DIR = BASE_DIR + "/data/";
+    static final String RUNBOOK_DIR = BASE_DIR + "/runbooks/";
 
     public static void main(String[] args) {
         ProvenanceSystem.initialize();
@@ -23,10 +26,10 @@ public class Main {
                     System.exit(0);
                     break;
                 case 1:
-                    listTools();
+                    //listTools();
                     break;
                 case 2:
-                    listTables();
+                    //listTables();
                     break;
                 case 3:
                     runTool(s);
@@ -34,11 +37,17 @@ public class Main {
                 case 4:
                     createTool(s);
                     break;
+                case 5:
+                    updateTool(s);
+                    break;
+                case 6:
+                    readInRunBook(s);
+                    break;
             }
         }
     }
 
-    private static void listTools() {
+    /*private static void listTools() {
         Set<Tool> tools = ProvenanceSystem.getProvenanceManager().getTools();
 
         if (tools.isEmpty()) {
@@ -53,8 +62,8 @@ public class Main {
         }
     }
 
-    private static void listTables() {
-        Collection<Table> tables = ProvenanceSystem.getProvenanceManager().getTables();
+    /*private static void listTables() {
+
 
         if (tables.isEmpty()) {
             System.out.println("No tables\n");
@@ -71,7 +80,7 @@ public class Main {
     }
 
     private static void listDependencies() {
-        for (Table t : ProvenanceSystem.getProvenanceManager().getTables()) {
+        /*for (Table t : ProvenanceSystem.getProvenanceManager().getTables()) {
             System.out.printf("%s: ", t.getName());
 
             Set<Table> dependencies = ProvenanceSystem.getProvenanceManager().getDependencies(t);
@@ -86,7 +95,7 @@ public class Main {
             }
             System.out.println();
         }
-    }
+    }*/
 
     private static void runTool(Scanner s) {
         // Get tool name, params, csv names, and a name for the output table
@@ -95,13 +104,12 @@ public class Main {
 
         Tool tool = ProvenanceSystem.getDbManager().getToolById(Integer.parseInt(toolId));
 
-        File toolFile = new File(BASE_DIR + tool.getName() + ".jar");
+        File toolFile = new File(tool.getFileName());
         if (!toolFile.exists()) {
             System.out.println("Invalid tool name");
             return;
         }
 
-        //TODO: read this off the tool entry in the db
         int numParams = tool.getNumParams();
         Parameter[] params = new Parameter[numParams];
         for (int i = 0; i < numParams; i++) {
@@ -110,38 +118,18 @@ public class Main {
             params[i] = new Parameter(tool.getParamTypes().get(i), val);
         }
 
-        //TODO: read this off the tool entry in the db
         int numTables = tool.getNumTables();
         Table[] inputTables = new Table[numTables];
 
         for (int i = 0; i < numTables; i++ ) {
             System.out.printf("CSV %d file name: ", i+1);
             String inputFileName = s.next();
-
-            String content = "";
-            String metadata = "";
-            try {
-                content = new String(Files.readAllBytes(Paths.get(BASE_DIR + inputFileName + ".csv")));
-                metadata = new String(Files.readAllBytes(Paths.get(BASE_DIR + inputFileName + ".metadata")));
-            } catch (IOException e) {
-                // Can't find file so ask again
-                System.out.println("File or metadata not found");
-                i--;
-                continue;
-            }
-
-            TableMetadata tm = TableMetadata.fromJson(metadata);
-
             System.out.print("Columns: ");
             String columnsString = s.next();
+
             String[] columns = columnsString.split(",");
 
-            if (columns.length != tm.numCols) {
-                content = getCSVSubset(content, columns);
-            }
-
-            Table table = new Table(inputFileName, content, tm);
-            inputTables[i] = table;
+            inputTables[i] = Table.getTable(inputFileName, columns);
         }
 
         System.out.print("Enter name for output table: ");
@@ -151,8 +139,8 @@ public class Main {
         Tool.ToolOutput output = tool.run(inputTables, params);
 
         // Write out the csv
-        File outFile = new File(BASE_DIR + outputFileName + ".csv");
-        File metadataFile = new File(BASE_DIR + outputFileName + ".metadata");
+        File outFile = new File(DATA_DIR + outputFileName + ".csv");
+        File metadataFile = new File(DATA_DIR + outputFileName + ".metadata");
         try {
             // Delete so we don't have to do some janky overwrite thing
             outFile.delete();
@@ -185,7 +173,6 @@ public class Main {
     }
 
     private static void createTool(Scanner s) {
-        //name, num input, num params, param types
         System.out.print("Enter tool name: ");
         String toolName = s.next();
 
@@ -213,28 +200,57 @@ public class Main {
         ProvenanceSystem.getDbManager().addTool(tool);
     }
 
-    private static String getCSVSubset(String csv, String[] columns) {
-        int[] columnNums = new int[columns.length];
-        for (int i = 0; i < columnNums.length; i++) {
-            columnNums[i] = Integer.parseInt(columns[i]);
+    private static void updateTool(Scanner s) {
+        System.out.print("Enter tool id: ");
+        Integer toolId = s.nextInt();
+
+        Tool old = ProvenanceSystem.getDbManager().getToolById(toolId);
+        if (old == null) {
+            System.out.printf("Invalid tool id.");
+            return;
         }
 
-        return Arrays.stream(csv.split(System.lineSeparator()))
-                .map(line -> getLineSubset(line, columnNums))
-                .collect(Collectors.joining(",,"));
+        System.out.print("Enter tool name: ");
+        String toolName = s.next();
+
+        System.out.print("Enter num input tables: ");
+        Integer numInputTables = s.nextInt();
+
+        System.out.print("Enter num parameters: ");
+        Integer numParameters = s.nextInt();
+
+        System.out.print("Enter parameter types: ");
+        String parameterTypesString = s.next();
+
+        List<Parameter.ParameterType> parameterTypes;
+        try {
+            parameterTypes = Arrays.stream(parameterTypesString.split(","))
+                    .map(Parameter.ParameterType::valueOf)
+                    .collect(Collectors.toList());
+        } catch (IllegalArgumentException e) {
+            System.out.println("Illegal parameter type. Valid types are STRING, INTEGER, and PREDICATE");
+            return;
+        }
+
+        Tool tool = new Tool(toolId, toolName, numInputTables, numParameters, parameterTypes);
+
+        ProvenanceSystem.getDbManager().updateTool(tool);
     }
 
-    private static String getLineSubset(String line, int[] columns) {
-        String[] values = line.split(",");
-        String[] desiredValues = new String[columns.length];
-        for (int i = 0; i < columns.length; i++) {
-            desiredValues[i] = i < columns.length ? values[columns[i]] : "";
+    private static void readInRunBook(Scanner s) {
+        System.out.print("Enter runbook name: ");
+        String runBookName = s.next();
+
+        try {
+            String content = new String(Files.readAllBytes(Paths.get(Main.RUNBOOK_DIR + runBookName + ".runbook")));
+            RunBook rb = RunBook.fromJson(content);
+        } catch (IOException ex) {
+            System.out.println(ex.getMessage());
         }
-        return String.join(",", desiredValues);
     }
 
     private static void revokeAccessToTable(Scanner s) {
-        System.out.print("Enter name of table to revoke: ");
+        /*System.out.print("Enter name of table to revoke: ");
         String name = s.next();
 
         Table table = null;
@@ -249,6 +265,6 @@ public class Main {
             return;
         }
 
-        ProvenanceSystem.getProvenanceManager().revokeAccess(table);
+        ProvenanceSystem.getProvenanceManager().revokeAccess(table);*/
     }
 }
