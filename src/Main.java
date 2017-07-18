@@ -1,9 +1,7 @@
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.RandomAccessFile;
+import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -29,21 +27,24 @@ public class Main {
                     //listTools();
                     break;
                 case 2:
-                    //listTables();
+                    listTables();
                     break;
                 case 3:
-                    runTool(s);
+                    editTable(s);
                     break;
                 case 4:
-                    createTool(s);
+                    runTool(s);
                     break;
                 case 5:
-                    updateTool(s);
+                    createTool(s);
                     break;
                 case 6:
-                    readInRunBook(s);
+                    updateTool(s);
                     break;
                 case 7:
+                    readInRunBook(s);
+                    break;
+                case 8:
                     playRunBook(s);
                     break;
             }
@@ -63,27 +64,77 @@ public class Main {
         for (Tool t : tools) {
             System.out.printf("%s (%d inputs)\n", t.getName(), t.getNumTables());
         }
-    }
+    }*/
 
-    /*private static void listTables() {
+    private static void listTables() {
+        PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:*.csv");
+        try {
+            List<Path> paths = Files.find(Paths.get(DATA_DIR), 50,
+                    (path, attr) -> matcher.matches(path.getFileName())).collect(Collectors.toList());
 
+            if (paths.isEmpty()) {
+                System.out.println("No tables\n");
+                return;
+            }
 
-        if (tables.isEmpty()) {
-            System.out.println("No tables\n");
+            System.out.println("Tables:");
+
+            for (Path path : paths) {
+                System.out.println(path.getFileName().toString());
+            }
+        } catch (IOException ex) {
+            System.out.println("IO error");
             return;
         }
-
-        System.out.println("Tables:");
-
-        for (Table t : tables) {
-            System.out.println(t.getName());
-        }
-
-        System.out.println();
     }
 
-    private static void listDependencies() {
-        /*for (Table t : ProvenanceSystem.getProvenanceManager().getTables()) {
+    private static void editTable(Scanner s) {
+        System.out.print("Enter dataset name: ");
+        String fileName = s.next();
+
+        try (
+                RandomAccessFile dataset = new RandomAccessFile(DATA_DIR + fileName + ".csv", "rw")
+        ) {
+            System.out.print("Operation: ");
+            Integer operation = s.nextInt();
+
+            switch (operation) {
+                case 1: //delete
+                    System.out.print("Row number to delete: ");
+                    Integer rowNum = s.nextInt();
+                    removeNthLine(dataset, rowNum);
+                    break;
+            }
+        } catch (IOException ex) {
+            System.out.println("File not found");
+        }
+    }
+
+    public static void removeNthLine(RandomAccessFile raf, int toRemove) throws IOException {
+        // Leave the n first lines unchanged.
+        for (int i = 0; i < toRemove; i++)
+            raf.readLine();
+
+        // Shift remaining lines upwards.
+        long writePos = raf.getFilePointer();
+        raf.readLine();
+        long readPos = raf.getFilePointer();
+
+        byte[] buf = new byte[1024];
+        int n;
+        while (-1 != (n = raf.read(buf))) {
+            raf.seek(writePos);
+            raf.write(buf, 0, n);
+            readPos += n;
+            writePos += n;
+            raf.seek(readPos);
+        }
+
+        raf.setLength(writePos);
+    }
+
+    /*private static void listDependencies() {
+        for (Table t : ProvenanceSystem.getProvenanceManager().getTables()) {
             System.out.printf("%s: ", t.getName());
 
             Set<Table> dependencies = ProvenanceSystem.getProvenanceManager().getDependencies(t);
