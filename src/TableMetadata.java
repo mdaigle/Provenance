@@ -4,6 +4,9 @@ import jdk.internal.util.xml.impl.Input;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Created by mdaigle on 5/17/17.
@@ -11,8 +14,8 @@ import java.util.ArrayList;
 public class TableMetadata {
     int numCols;
     int toolId;
-    InputTableMetadata[] inputTables;
-    Parameter[] parameters;
+    List<InputTableMetadata> inputTables;
+    List<Parameter> parameters;
 
     /*
     For projection this looks like:
@@ -33,16 +36,42 @@ public class TableMetadata {
      * @param inputTables
      * @param parameters
      */
-    public TableMetadata(int numCols, int toolId, ArrayList<InputTableMetadata> inputTables, Parameter[] parameters) {
+    public TableMetadata(int numCols, int toolId, List<InputTableMetadata> inputTables, List<Parameter> parameters) {
         this.numCols = numCols;
         this.toolId = toolId;
+        this.inputTables = inputTables;
+        this.parameters = parameters;
+    }
 
-        this.inputTables = new InputTableMetadata[inputTables.size()];
-        for (int i = 0; i < inputTables.size(); i++) {
-            this.inputTables[i] = inputTables.get(i);
+    /**
+     * Determines if the table is impacted by the edit history.
+     * Returns true if definitely impacted, null if possibly
+     * impacted, and false if definitely not impacted.
+     * @param editHistory
+     * @return
+     */
+    public Boolean impactedBy(EditHistory editHistory) {
+        for (InputTableMetadata metadata : inputTables) {
+            if (!metadata.tableHeader.equals(editHistory.getTableHeader())) {
+                continue;
+            }
+
+            if (metadata.dependsOnAllRows()) {
+                return true;
+            }
+
+            if (metadata.dependsOnGreaterThanFive()) {
+                return null;
+            }
+
+            for (EditHistory.Edit edit : editHistory) {
+                if (metadata.rows.contains(edit.getLineNumber())) {
+                    return true;
+                }
+            }
         }
 
-        this.parameters = parameters;
+        return false;
     }
 
     /**
@@ -66,14 +95,19 @@ public class TableMetadata {
      * @param condensed
      * @return
      */
-    public static TableMetadata fromCondensed(String condensed, int numCols, int toolId, Parameter[] params) {
+    public static TableMetadata fromCondensed(String condensed, int numCols, int toolId, List<Parameter> params) {
         String[] lines = condensed.split("\n");
 
         ArrayList<InputTableMetadata> inputTablesArray = new ArrayList<>();
         for (int i = 0; i < lines.length; i++) {
             // component 0 is tableid, component 1 is rows (ALL, >5, or individuals)
             String[] components = lines[i].split("\t", 2);
-            InputTableMetadata input = new InputTableMetadata(components[0], components[1]);
+            List<String> rows = Arrays.asList(components[1].split("\\s+"));
+
+            TableHeader header = new TableHeader();
+            header.setName(components[0]);
+
+            InputTableMetadata input = new InputTableMetadata(header, rows);
             inputTablesArray.add(input);
         }
 

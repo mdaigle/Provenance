@@ -1,9 +1,8 @@
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Tool {
@@ -71,7 +70,7 @@ public class Tool {
      * @param params
      * @return
      */
-    public ToolOutput run(Table[] inputTables, Parameter[] params) {
+    public ToolOutput run(List<Table> inputTables, List<Parameter> params, String outputFileName) {
         String fileName = this.getFileName();
         String[] args = this.getArgs(inputTables, params);
 
@@ -93,7 +92,17 @@ public class Tool {
         String outputCsv = rto.csv;
         TableMetadata outputMetadata = TableMetadata.fromCondensed(rto.condensedMetadata, numOutputCols, toolId, params);
 
-        return new ToolOutput(outputCsv, outputMetadata);
+        ToolOutput output = new ToolOutput(outputCsv, outputMetadata);
+
+        // write the output to the output file
+        Tool.writeOutput(outputFileName, output);
+
+        // Build a table for the output file and add dependencies
+        Table outputTable = Table.getTable(outputFileName);
+        List<TableHeader> inputTableHeaders = inputTables.stream().map(t -> t.getTableHeader()).collect(Collectors.toList());
+        ProvenanceSystem.getProvenanceManager().addDependencies(outputTable.getTableHeader(), inputTableHeaders);
+
+        return output;
     }
 
     /**
@@ -110,19 +119,19 @@ public class Tool {
      * @param params
      * @return
      */
-    private static String[] getArgs(Table[] inputTables, Parameter[] params) {
+    private static String[] getArgs(List<Table> inputTables, List<Parameter> params) {
         ArrayList<String> args = new ArrayList<>();
 
-        args.add(String.format("%d", params.length));
-        args.add(String.format("%d", inputTables.length));
+        args.add(String.format("%d", params.size()));
+        args.add(String.format("%d", inputTables.size()));
 
         for (Parameter p : params) {
             args.add(p.getValue());
         }
 
-        for (int i = 0; i < inputTables.length; i++) {
-            args.add(inputTables[i].getId());
-            args.add(inputTables[i].getCSV());
+        for (Table table : inputTables) {
+            args.add(table.getName());
+            args.add(table.getCSV());
         }
 
         return args.toArray(new String[]{});
@@ -172,6 +181,11 @@ public class Tool {
         return builder.toString();
     }
 
+    /**
+     * Writes the derived data and its metadata to files.
+     * @param outputFileName
+     * @param output
+     */
     public static void writeOutput(String outputFileName, ToolOutput output) {
         // Write out the csv
         File outFile = new File(Main.DATA_DIR + outputFileName + ".csv");
@@ -208,7 +222,7 @@ public class Tool {
     /*private String generateMetadataJSON(int numCols, Table[] inputTables, Parameter[] params) {
         String[] inputTableIds = new String[inputTables.length];
         for (int i = 0; i < inputTableIds.length; i++) {
-            inputTableIds[i] = inputTables[i].getId();
+            inputTableIds[i] = inputTables[i].getHash();
         }
         TableMetadata metadata = new TableMetadata(numCols, this.toolId, inputTableIds, params);
         return metadata.toJSON();

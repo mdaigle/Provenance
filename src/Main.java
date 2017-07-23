@@ -89,33 +89,69 @@ public class Main {
     }
 
     private static void editTable(Scanner s) {
+
         System.out.print("Enter dataset name: ");
         String fileName = s.next();
+        //TODO: load table here and edit its csv
 
+        EditHistory editHistory = new EditHistory();
         try (
-                RandomAccessFile dataset = new RandomAccessFile(DATA_DIR + fileName + ".csv", "rw")
+            RandomAccessFile dataset = new RandomAccessFile(DATA_DIR + fileName + ".csv", "rw")
         ) {
-            System.out.print("Operation: ");
-            Integer operation = s.nextInt();
+            boolean done = false;
+            while (!done) {
+                System.out.print("Operation: ");
+                String opName = s.next();
 
-            switch (operation) {
-                case 1: //delete
-                    System.out.print("Row number to delete: ");
-                    Integer rowNum = s.nextInt();
-                    removeNthLine(dataset, rowNum);
-                    break;
+                if (!EditHistory.Operation.isValidOp(opName)) {
+                    System.out.println("Invalid operation");
+                    continue;
+                }
+
+                EditHistory.Operation operation = EditHistory.Operation.valueOf(opName);
+
+                switch (operation) {
+                    case NO_OP: //stop editing
+                        done = true;
+                    case DELETE: //delete
+                        System.out.print("Row number to delete: ");
+                        Integer rowNum = s.nextInt();
+                        removeNthLine(dataset, rowNum);
+                        editHistory.addEdit(operation, rowNum);
+                        break;
+                    case ADD:
+                        break;
+                    case UPDATE:
+                        break;
+                }
             }
         } catch (IOException ex) {
-            System.out.println("File not found");
+            System.out.println(ex.getMessage());
+        }
+
+        // If no edits, exit
+        if (editHistory.size() == 0) {
+            return;
+        }
+
+        ProvenanceManager.ImpactedTables impactedTables = ProvenanceSystem.getProvenanceManager().getImpactedTables(editHistory);
+        System.out.println("Impacted Tables:");
+        for (TableHeader header : impactedTables.getDefinitelyImpacted()) {
+            System.out.println(header.getName());
+        }
+        System.out.println("Possibly Impacted Tables:");
+        for (TableHeader header : impactedTables.getPossiblyImpacted()) {
+            System.out.println(header.getName());
         }
     }
 
     public static void removeNthLine(RandomAccessFile raf, int toRemove) throws IOException {
-        // Leave the n first lines unchanged.
+        //TODO: this should return a temp file, save after all edits to that line numbers aren't fucked
+        // Leave the n first lines unchanged
         for (int i = 0; i < toRemove; i++)
             raf.readLine();
 
-        // Shift remaining lines upwards.
+        // Shift remaining lines upwards
         long writePos = raf.getFilePointer();
         raf.readLine();
         long readPos = raf.getFilePointer();
@@ -165,15 +201,15 @@ public class Main {
         }
 
         int numParams = tool.getNumParams();
-        Parameter[] params = new Parameter[numParams];
+        List<Parameter> params = new ArrayList<>();
         for (int i = 0; i < numParams; i++) {
             System.out.printf("Param %d: ", i);
             String val = s.next();
-            params[i] = new Parameter(tool.getParamTypes().get(i), val);
+            params.add(new Parameter(tool.getParamTypes().get(i), val));
         }
 
         int numTables = tool.getNumTables();
-        Table[] inputTables = new Table[numTables];
+        List<Table> inputTables = new ArrayList<>();
 
         for (int i = 0; i < numTables; i++ ) {
             System.out.printf("CSV %d file name: ", i+1);
@@ -181,18 +217,16 @@ public class Main {
             System.out.print("Columns: ");
             String columnsString = s.next();
 
-            String[] columns = columnsString.split(",");
+            List<String> columns = Arrays.asList(columnsString.split(","));
 
-            inputTables[i] = Table.getTable(inputFileName, columns);
+            inputTables.add(Table.getTable(inputFileName, columns));
         }
 
         System.out.print("Enter name for output table: ");
         String outputFileName = s.next();
 
         // Run the tool
-        Tool.ToolOutput output = tool.run(inputTables, params);
-
-        Tool.writeOutput(outputFileName, output);
+        tool.run(inputTables, params, outputFileName);
 
         System.out.println("Tool ran successfully");
     }

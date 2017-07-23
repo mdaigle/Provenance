@@ -5,7 +5,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -13,8 +15,7 @@ import java.util.stream.Collectors;
  *  TODO: hash id instead or something, because user generated ids suck
  */
 public class Table {
-    private String id;
-    private String name;
+    private TableHeader header;
     private String csv;
     private TableMetadata tm;
 
@@ -23,24 +24,27 @@ public class Table {
      * @param name
      */
     public Table(String name, String csv, TableMetadata tm) {
-        this.name = name;
+        header = new TableHeader();
+        header.setName(name);
         this.csv = csv;
         this.tm = tm;
 
         //TODO: another way to make a UUID?
+        String hash;
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(csv.getBytes(StandardCharsets.UTF_8));
-            id = new String(hash, "UTF-8");
+            byte[] hashArray = digest.digest(csv.getBytes(StandardCharsets.UTF_8));
+            hash = new String(hashArray, "UTF-8");
         } catch (NoSuchAlgorithmException | UnsupportedEncodingException ex) {
-            id = null;
+            hash = null;
         }
+        header.setHash(hash);
     }
 
-    public static String getSubset(String content, String[] columns) {
-        int[] columnNums = new int[columns.length];
-        for (int i = 0; i < columnNums.length; i++) {
-            columnNums[i] = Integer.parseInt(columns[i]);
+    public static String getSubset(String content, List<String> columns) {
+        List<Integer> columnNums = new ArrayList<>();
+        for (String column : columns) {
+            columnNums.add(Integer.parseInt(column));
         }
 
         return Arrays.stream(content.split(System.lineSeparator()))
@@ -48,35 +52,53 @@ public class Table {
                 .collect(Collectors.joining(",,"));
     }
 
-    private static String getLineSubset(String line, int[] columns) {
-        String[] values = line.split(",");
-        String[] desiredValues = new String[columns.length];
-        for (int i = 0; i < columns.length; i++) {
-            desiredValues[i] = i < columns.length ? values[columns[i]] : "";
+    private static String getLineSubset(String line, List<Integer> columns) {
+        List<String> values = Arrays.asList(line.split(","));
+        List<String> desiredValues = new ArrayList<>();
+        for (Integer column : columns) {
+            desiredValues.add(values.get(column));
         }
         return String.join(",", desiredValues);
     }
 
-    public static Table getTable(String fileName, String[] columns) {
-        String content = "";
-        String metadata = "";
+    public boolean impactedBy(EditHistory editHistory) {
+        return tm.impactedBy(editHistory);
+    }
+
+    public static Table getTable(TableHeader tableHeader) {
+        return getTable(tableHeader.getName());
+    }
+
+    public static Table getTable(String filename) {
+        return getTable(filename, null);
+    }
+
+    public static Table getTable(String fileName, List<String> columns) {
+        String content;
+        String metadata;
         try {
             content = new String(Files.readAllBytes(Paths.get(Main.DATA_DIR + fileName + ".csv")));
             metadata = new String(Files.readAllBytes(Paths.get(Main.DATA_DIR + fileName + ".metadata")));
         } catch (IOException e) {
+            System.out.println(e.getMessage());
+            throw new RuntimeException();
         }
 
         TableMetadata tm = TableMetadata.fromJson(metadata);
 
-        if (columns.length != tm.numCols) {
+        if (columns != null && columns.size() != tm.numCols) {
             content = Table.getSubset(content, columns);
         }
 
         return new Table(fileName, content, tm);
     }
 
-    public String getId() {
-        return this.id;
+    public TableHeader getTableHeader() {
+        return header;
+    }
+
+    public String getHash() {
+        return header.getHash();
     }
 
     /**
@@ -84,7 +106,7 @@ public class Table {
      * @return the table's name
      */
     public String getName() {
-        return name;
+        return header.getName();
     }
 
     public TableMetadata getMetadata() {
@@ -93,5 +115,20 @@ public class Table {
 
     public String getCSV() {
         return csv;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Table table = (Table) o;
+
+        return header.equals(table.header);
+    }
+
+    @Override
+    public int hashCode() {
+        return header.hashCode();
     }
 }

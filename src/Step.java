@@ -1,11 +1,14 @@
+import java.util.ArrayList;
+import java.util.List;
+
 public class Step {
     private String toolName;
-    private Parameter[] parameters;
-    private String[] inputFileNames;
-    private String[][] inputFileColumns;
+    private List<Parameter> parameters;
+    private List<String> inputFileNames;
+    private List<List<String>> inputFileColumns;
     private String outputFileName;
 
-    public Step(String toolName, Parameter[] parameters, String[] inputFileNames, String[][] inputFileColumns, String outputFileName) {
+    public Step(String toolName, List<Parameter> parameters, List<String> inputFileNames, List<List<String>> inputFileColumns, String outputFileName) {
         this.toolName = toolName;
         this.parameters = parameters;
         this.inputFileNames = inputFileNames;
@@ -14,17 +17,15 @@ public class Step {
     }
 
     public void run() {
-        Table[] inputTables = new Table[inputFileNames.length];
+        List<Table> inputTables = new ArrayList<>();
 
-        for (int i = 0; i < inputTables.length; i++) {
-            inputTables[i] = Table.getTable(inputFileNames[i], inputFileColumns[i]);
+        for (int i = 0; i < inputTables.size(); i++) {
+            inputTables.add(Table.getTable(inputFileNames.get(i), inputFileColumns.get(i)));
         }
 
         Tool tool = ProvenanceSystem.getDbManager().getToolByName(toolName);
 
-        Tool.ToolOutput output = tool.run(inputTables, parameters);
-
-        Tool.writeOutput(outputFileName, output);
+        Tool.ToolOutput output = tool.run(inputTables, parameters, outputFileName);
     }
 
 

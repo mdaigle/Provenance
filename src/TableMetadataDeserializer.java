@@ -3,6 +3,7 @@ import com.google.gson.*;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 public class TableMetadataDeserializer implements JsonDeserializer<TableMetadata> {
     @Override
@@ -22,11 +23,11 @@ public class TableMetadataDeserializer implements JsonDeserializer<TableMetadata
         Collections.addAll(inputTableMetadataArray, inputTableMetadata);
 
         JsonArray jsonParameters = jsonObject.get("parameters").getAsJsonArray();
-        Parameter[] parameters = new Parameter[jsonParameters.size()];
-        for (int i = 0; i < parameters.length; i++) {
-            JsonObject jsonParam = jsonParameters.get(i).getAsJsonObject();
-            parameters[i] = jsonDeserializationContext.deserialize(jsonParam, Parameter.class);
-        }
+        List<Parameter> parameters = new ArrayList<>();
+        jsonParameters.forEach(jsonParameter -> {
+            parameters.add(jsonDeserializationContext.deserialize(jsonParameter, Parameter.class));
+        });
+
         return new TableMetadata(numCols, toolId, inputTableMetadataArray, parameters);
     }
 }

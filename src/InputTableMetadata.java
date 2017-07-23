@@ -1,12 +1,19 @@
-/**
- * Created by mdaigle on 6/3/17.
- */
-public class InputTableMetadata {
-    String tableId;
-    String numContributingRows;
+import java.util.List;
 
-    InputTableMetadata(String tableId, String contributingRows) {
-        this.tableId = tableId;
-        this.numContributingRows = contributingRows;
+public class InputTableMetadata {
+    TableHeader tableHeader;
+    List<String> rows;
+
+    InputTableMetadata(TableHeader header, List<String> rows) {
+        this.tableHeader = header;
+        this.rows = rows;
+    }
+
+    public boolean dependsOnAllRows() {
+        return rows.size() > 0 && rows.get(0).equals("ALL");
+    }
+
+    public boolean dependsOnGreaterThanFive() {
+        return rows.size() > 0 && rows.get(0).equals(">5");
     }
 }

@@ -7,24 +7,58 @@ public class ProvenanceManager {
     /**
      * All tables managed by this provenance manager.
      */
-    private Set<Table> tables;
+    //private Set<Table> tables;
 
     /**
      * Maps base tables to tables derived from them (i.e. tables that depend on them).
      */
-    private Map<Table, HashSet<Table>> dependencies;
+    private Map<TableHeader, HashSet<TableHeader>> dependencies;
 
     /**
      * All tools available for use with tables tracked by this provenance manager.
      */
     private Set<Tool> tools;
 
+    public class ImpactedTables {
+        private Set<TableHeader> definitelyImpacted;
+        private Set<TableHeader> possiblyImpacted;
+
+        public ImpactedTables() {
+            definitelyImpacted = new HashSet<>();
+            possiblyImpacted = new HashSet<>();
+        }
+
+        public void addDefinitelyImpacted(TableHeader header) {
+            definitelyImpacted.add(header);
+        }
+
+        public void addDefinitelyImpacted(Collection<TableHeader> headers) {
+            definitelyImpacted.addAll(headers);
+        }
+
+        public void addPossiblyImpacted(TableHeader header) {
+            possiblyImpacted.add(header);
+        }
+
+        public void addPossiblyImpacted(Collection<TableHeader> headers) {
+            possiblyImpacted.addAll(headers);
+        }
+
+        public Set<TableHeader> getDefinitelyImpacted() {
+            return Collections.unmodifiableSet(definitelyImpacted);
+        }
+
+        public Set<TableHeader> getPossiblyImpacted() {
+            return Collections.unmodifiableSet(possiblyImpacted);
+        }
+    }
+
     /**
      * Create a new provenance manager.
      */
     public ProvenanceManager() {
         // TODO: add parameter for connection string?
-        this.tables = new HashSet<>();
+        //this.tables = new HashSet<>();
         this.dependencies = new HashMap<>();
         this.tools = new HashSet<>();
     }
@@ -33,7 +67,7 @@ public class ProvenanceManager {
      * Initializes the backing database and loads stored state.
      */
     public void initialize() {
-        //TODO: need to do anything here?
+        //TODO: Don't need to do anything here unless I want to read stuff from db
         // Load stored tables
         /*Collection<Table> storedTables = this.dbManager.getTables();
         if (storedTables != null) {
@@ -52,8 +86,8 @@ public class ProvenanceManager {
      * @param base
      * @return
      */
-    public Set<Table> getDependencies(Table base) {
-        Set<Table> dependencies = this.dependencies.get(base);
+    public Set<TableHeader> getDependencies(TableHeader base) {
+        Set<TableHeader> dependencies = this.dependencies.get(base);
 
         if (dependencies == null) {
             return null;
@@ -62,13 +96,29 @@ public class ProvenanceManager {
         return Collections.unmodifiableSet(dependencies);
     }
 
+    public Set<TableHeader> getDependenciesRecursive(TableHeader base) {
+        Set<TableHeader> dependentTables = new HashSet<>();
+
+        List<TableHeader> toCheck = new ArrayList<>();
+        toCheck.addAll(getDependencies(base));
+
+        while (!toCheck.isEmpty()) {
+            TableHeader next = toCheck.remove(0);
+            Set<TableHeader> nextDependents = getDependencies(next);
+            dependentTables.addAll(nextDependents);
+            toCheck.addAll(nextDependents);
+        }
+
+        return dependentTables;
+    }
+
     /**
      * Adds a dependency. The derived table depends on the base table.
      * @param base the base table
      * @param derived the derived table
      */
-    public void addDependency(Table base, Table derived) {
-        HashSet<Table> set = this.dependencies.get(base);
+    public void addDependency(TableHeader base, TableHeader derived) {
+        HashSet<TableHeader> set = this.dependencies.get(base);
 
         if (set == null) {
             set = new HashSet<>();
@@ -79,53 +129,29 @@ public class ProvenanceManager {
     }
 
     /**
-     * Returns the table managed by this provenance manager.
-     * @return
+     * Adds dependencies.
+     * @param base
+     * @param inputs
      */
-    public Set<Table> getTables() {
-        return Collections.unmodifiableSet(this.tables);
+    public void addDependencies(TableHeader base, List<TableHeader> inputs) {
+        inputs.forEach(input -> addDependency(base, input));
     }
 
-    /**
-     * Adds a table.
-     * @param table
-     */
-    public boolean addTable(Table table) {
-        if (tables.contains(table)) {
-            return false;
-        }
-
-        // Create the table in the database
-        ProvenanceSystem.getDbManager().createTable(table);
-
-        return this.tables.add(table);
+    public Set<TableHeader> getDependentTables(TableHeader base) {
+        return dependencies.get(base);
     }
 
-    /**
-     * Adds a derived table and its dependencies.
-     * @param derived
-     * @param ti
-     */
-    public boolean addTable(Table derived, ToolInstance ti) {
-        if (!tools.contains(ti.getTool())) {
-            throw new IllegalArgumentException("ToolInstance's Tool type is not recognized.");
+    private void removeDependency(TableHeader base, TableHeader derived) {
+        Set<TableHeader> dependencySet = dependencies.get(base);
+
+        if (dependencySet == null) {
+            return;
         }
 
-        if (!addTable(derived)) {
-            return false;
-        }
-
-        for (Table base : ti.getTables()) {
-            this.addDependency(base, derived);
-        }
-
-        // Create the table in the database
-        ProvenanceSystem.getDbManager().createTable(derived);
-
-        return true;
+        dependencySet.remove(derived);
     }
 
-    public void revokeAccess(Table table) {
+    /*public void revokeAccess(Table table) {
         if (!this.tables.contains(table)) {
             return;
         }
@@ -143,28 +169,26 @@ public class ProvenanceManager {
 
             toRevoke.addAll(dependentTables);
 
-            /* TODO: something more sophisticated than just deleting dependencies.
-             * Maybe have flags set on tables that indicate if they have access to all of the tables they depend on.
-             */
+            // TODO: something more sophisticated than just deleting dependencies.
+            // Maybe have flags set on tables that indicate if they have access to all of the tables they depend on.
             dependencies.remove(curr);
-
         }
-    }
+    }*/
 
-    /**
-     * Returns the set of available tools.
-     * @return
-     */
-    public Set<Tool> getTools() {
-        return Collections.unmodifiableSet(this.tools);
-    }
+    public ImpactedTables getImpactedTables(EditHistory editHistory) {
+        ImpactedTables impactedTables = new ImpactedTables();
+        Set<TableHeader> directDependencies = getDependencies(editHistory.getTableHeader());
 
-    /**
-     * Adds a new tool to the set of available tools.
-     * @param tool
-     */
-    public void addTool(Tool tool) {
-        this.tools.add(tool);
-        ProvenanceSystem.getDbManager().addTool(tool);
+        for (TableHeader header : directDependencies) {
+            Table dependentTable = Table.getTable(header);
+            if (!dependentTable.impactedBy(editHistory)) {
+                continue;
+            }
+
+            impactedTables.addDefinitelyImpacted(header);
+            impactedTables.addPossiblyImpacted(getDependenciesRecursive(header));
+        }
+
+        return impactedTables;
     }
 }
