@@ -1,3 +1,7 @@
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
 import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -9,29 +13,51 @@ public class DbManager {
     /**
      * SQL statement to create the tools table.
      */
-    private static final String CREATE_TOOLS_TABLE_SQL = "CREATE TABLE IF NOT EXISTS Tools" +
-            "(ID                INTEGER     PRIMARY KEY," +
-            "NAME               TEXT        KEY," +
-            "NUM_INPUT_TABLES   INTEGER     UNSIGNED," +
-            "NUM_PARAMETERS     INTEGER     UNSIGNED," +
-            "PARAMETER_TYPES    TEXT        NOT NULL)";
+    private static final String CREATE_TOOLS_TABLE_SQL =
+            "CREATE TABLE IF NOT EXISTS tools" +
+                    "(id                INTEGER     PRIMARY KEY," +
+                    "name               TEXT        KEY," +
+                    "num_input_tables   INTEGER     UNSIGNED," +
+                    "num_parameters     INTEGER     UNSIGNED," +
+                    "parameter_types    TEXT        NOT NULL)";
+
+    private static final String CREATE_DEPENDENCIES_TABLE_SQL =
+            "CREATE TABLE IF NOT EXISTS dependencies" +
+                    "(base      TEXT        PRIMARY KEY," +
+                    "derived    TEXT        NOT NULL)";
 
     /**
      * SQL statement to create a data table.
      */
     private static final String CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS ?" +
-            "(ID                INTEGER     PRIMARY KEY, " +
-            "VALUE              INTEGER     UNSIGNED)";
+            "(id                INTEGER     PRIMARY KEY, " +
+            "value              INTEGER     UNSIGNED)";
 
     /**
      * SQL statement to add a tool.
      */
-    private static final String ADD_TOOL_SQL = "INSERT INTO Tools VALUES" +
+    private static final String ADD_TOOL_SQL =
+            "INSERT INTO tools VALUES" +
             "(NULL, ?, ?, ?, ?)";
 
-    private static final String UPDATE_TOOL_SQL = "UPDATE Tools" +
+    private static final String UPDATE_TOOL_SQL =
+            "UPDATE tools" +
             " SET NAME=?, NUM_INPUT_TABLES=?, NUM_PARAMETERS=?, PARAMETER_TYPES=?" +
             " WHERE ID=?";
+
+    private static final String UPDATE_OR_INSERT_DEPENDENCIES_BY_BASE =
+            "BEGIN tran" +
+                "IF EXISTS (SELECT * FROM dependencies WHERE base=?)" +
+                    "BEGIN" +
+                        "UPDATE dependencies" +
+                        "SET derived=?" +
+                        "WHERE base=?" +
+                    "END" +
+                "ELSE" +
+                    "BEGIN" +
+                        "INSERT INTO dependencies VALUES (?, ?)" +
+                    "END" +
+            "COMMIT tran";
 
     /**
      * SQL statement to get all tools.
@@ -42,6 +68,16 @@ public class DbManager {
      * SQL statement to get a tool by id.
      */
     private static final String GET_TOOL_BY_ID_SQL = "SELECT * FROM TOOLS WHERE id=?";
+
+    /**
+     * SQL statement to get all dependencies.
+     */
+    private static final String GET_ALL_DEPENDENCIES = "SELECT * FROM DEPENDENCIES";
+
+    /**
+     * SQL statement to get all dependencies for a base table (by name).
+     */
+    private static final String GET_DEPENDENCIES_BY_BASE = "SELECT * FROM dependencies WHERE base=?";
 
     /**
      * SQL statement to get a tool by name.
@@ -90,6 +126,10 @@ public class DbManager {
             Statement s = conn.createStatement();
             s.executeUpdate(CREATE_TOOLS_TABLE_SQL);
 
+            // Create Dependencies table
+            s = conn.createStatement();
+            s.executeUpdate(CREATE_DEPENDENCIES_TABLE_SQL);
+
             conn.close();
         } catch ( Exception e ) {
             System.err.println( e.getClass().getName() + ": " + e.getMessage() );
@@ -109,12 +149,71 @@ public class DbManager {
             String SQL = CREATE_TABLE_SQL.replace("?", table.getName());
             Statement s = conn.createStatement();
             s.executeUpdate(SQL);
+        } catch ( Exception e ) {
+            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+            System.exit(0);
+        }
+    }
+
+    public void updateOrAddDependencies(TableHeader base, Set<TableHeader> derived) {
+        Connection conn;
+        try {
+            // Open a connection to the db
+            Class.forName(sqlClass);
+            conn = DriverManager.getConnection(systemConnection);
+
+            Gson gson = new Gson();
+
+            // Create the table
+            PreparedStatement s = conn.prepareStatement(UPDATE_OR_INSERT_DEPENDENCIES_BY_BASE);
+            s.setString(1, gson.toJson(base));
+            s.setString(2, gson.toJson(derived));
+            s.setString(3, gson.toJson(base));
+            s.setString(4, gson.toJson(base));
+            s.setString(5, gson.toJson(derived));
+            s.executeUpdate();
 
             conn.close();
         } catch ( Exception e ) {
             System.err.println( e.getClass().getName() + ": " + e.getMessage() );
             System.exit(0);
         }
+    }
+
+    public void saveDependencies(Map<TableHeader, Set<TableHeader>> dependencies) {
+        for (TableHeader base : dependencies.keySet()) {
+            updateOrAddDependencies(base, dependencies.get(base));
+        }
+    }
+
+    public Map<TableHeader, Set<TableHeader>> getDependencies() {
+        try (Connection conn = DriverManager.getConnection(systemConnection)){
+            Map<TableHeader, Set<TableHeader>> map = new HashMap<>();
+
+            PreparedStatement s = conn.prepareStatement(GET_ALL_DEPENDENCIES);
+            ResultSet results = s.executeQuery();
+
+            while (results.next()) {
+                GsonBuilder builder = new GsonBuilder();
+                Gson gson = builder.create();
+
+                String baseJSON = results.getString(1);
+                TableHeader base = gson.fromJson(baseJSON, TableHeader.class);
+
+                String dependenciesJSONString = results.getString(2);
+
+
+                Set<TableHeader> dependentTables = gson.fromJson(dependenciesJSONString, new TypeToken<Set<TableHeader>>(){}.getType());
+
+                map.put(base, dependentTables);
+            }
+
+            return map;
+        } catch ( Exception e ) {
+            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+            System.exit(0);
+        }
+        return null;
     }
 
     public void addTool(Tool tool) {

@@ -1,6 +1,5 @@
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -89,15 +88,12 @@ public class Main {
     }
 
     private static void editTable(Scanner s) {
-
         System.out.print("Enter dataset name: ");
         String fileName = s.next();
-        //TODO: load table here and edit its csv
+        Table table = Table.getTable(fileName);
+        EditHistory editHistory = new EditHistory(table.getHeader());
 
-        EditHistory editHistory = new EditHistory();
-        try (
-            RandomAccessFile dataset = new RandomAccessFile(DATA_DIR + fileName + ".csv", "rw")
-        ) {
+        try {
             boolean done = false;
             while (!done) {
                 System.out.print("Operation: ");
@@ -111,21 +107,33 @@ public class Main {
                 EditHistory.Operation operation = EditHistory.Operation.valueOf(opName);
 
                 switch (operation) {
-                    case NO_OP: //stop editing
+                    case ABORT:
+                        // stop editing and don't save
+                        return;
+                    case STOP:
+                        // stop editing and save
                         done = true;
-                    case DELETE: //delete
+                        break;
+                    case DELETE:
                         System.out.print("Row number to delete: ");
-                        Integer rowNum = s.nextInt();
-                        removeNthLine(dataset, rowNum);
-                        editHistory.addEdit(operation, rowNum);
+                        Integer deleteRowNum = s.nextInt();
+                        editHistory.addEdit(table.removeLine(deleteRowNum));
                         break;
                     case ADD:
+                        System.out.print("Row data: ");
+                        String line = s.next();
+                        editHistory.addEdit(table.addLine(line));
                         break;
                     case UPDATE:
+                        System.out.print("Row num to update: ");
+                        Integer updateRowNum = s.nextInt();
+                        System.out.print("Row data: ");
+                        String update = s.next();
+                        editHistory.addEdit(table.updateLine(updateRowNum, update));
                         break;
                 }
             }
-        } catch (IOException ex) {
+        } catch (RuntimeException ex) {
             System.out.println(ex.getMessage());
         }
 
@@ -134,39 +142,20 @@ public class Main {
             return;
         }
 
+        // List the impacted tables
         ProvenanceManager.ImpactedTables impactedTables = ProvenanceSystem.getProvenanceManager().getImpactedTables(editHistory);
         System.out.println("Impacted Tables:");
         for (TableHeader header : impactedTables.getDefinitelyImpacted()) {
             System.out.println(header.getName());
         }
+
         System.out.println("Possibly Impacted Tables:");
         for (TableHeader header : impactedTables.getPossiblyImpacted()) {
             System.out.println(header.getName());
         }
-    }
 
-    public static void removeNthLine(RandomAccessFile raf, int toRemove) throws IOException {
-        //TODO: this should return a temp file, save after all edits to that line numbers aren't fucked
-        // Leave the n first lines unchanged
-        for (int i = 0; i < toRemove; i++)
-            raf.readLine();
-
-        // Shift remaining lines upwards
-        long writePos = raf.getFilePointer();
-        raf.readLine();
-        long readPos = raf.getFilePointer();
-
-        byte[] buf = new byte[1024];
-        int n;
-        while (-1 != (n = raf.read(buf))) {
-            raf.seek(writePos);
-            raf.write(buf, 0, n);
-            readPos += n;
-            writePos += n;
-            raf.seek(readPos);
-        }
-
-        raf.setLength(writePos);
+        // Write the csv to disk to save the edits
+        table.save();
     }
 
     /*private static void listDependencies() {

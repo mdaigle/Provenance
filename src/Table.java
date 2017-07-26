@@ -1,3 +1,5 @@
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
@@ -61,6 +63,66 @@ public class Table {
         return String.join(",", desiredValues);
     }
 
+    public EditHistory.Edit removeLine(int lineToRemove) {
+        if (lineToRemove < 0) {
+            throw new IndexOutOfBoundsException();
+        }
+
+        String[] lineArr = csv.split("\\r?\\n");
+        List<String> lines = Arrays.stream(lineArr).collect(Collectors.toList());
+
+        if (lineToRemove >= lines.size()) {
+            throw new IndexOutOfBoundsException();
+        }
+
+        lines.remove(lineToRemove);
+        csv = lines.stream().collect(Collectors.joining("\n"));
+
+        return new EditHistory.Edit(EditHistory.Operation.DELETE, lineToRemove);
+    }
+
+    public EditHistory.Edit addLine(String line) {
+        String[] lineArr = csv.split("\\r?\\n");
+        List<String> lines = Arrays.stream(lineArr).collect(Collectors.toList());
+        lines.add(line);
+
+        csv = lines.stream().collect(Collectors.joining("\n"));
+
+        return new EditHistory.Edit(EditHistory.Operation.ADD, lines.size() - 1);
+    }
+
+    public EditHistory.Edit updateLine(int lineToUpdate, String line) {
+        if (lineToUpdate < 0) {
+            throw new IndexOutOfBoundsException();
+        }
+
+        String[] lineArr = csv.split("\\r?\\n");
+        List<String> lines = Arrays.stream(lineArr).collect(Collectors.toList());
+
+        if (lineToUpdate >= lines.size()) {
+            throw new IndexOutOfBoundsException();
+        }
+
+        lines.remove(lineToUpdate);
+        lines.add(lineToUpdate, line);
+
+        csv = lines.stream().collect(Collectors.joining("\n"));
+
+        return new EditHistory.Edit(EditHistory.Operation.UPDATE, lineToUpdate);
+    }
+
+    /**
+     * Writes this table's csv back to disk.
+     */
+    public void save() {
+        File outFile = new File(Main.DATA_DIR + header.getName() + ".csv");
+        try ( FileWriter writer = new FileWriter(outFile) ) {
+            writer.write(csv);
+        } catch (IOException ex) {
+            System.out.println("Problem writing to file for table: " + header.getName());
+        }
+    }
+
     public boolean impactedBy(EditHistory editHistory) {
         return tm.impactedBy(editHistory);
     }
@@ -93,7 +155,7 @@ public class Table {
         return new Table(fileName, content, tm);
     }
 
-    public TableHeader getTableHeader() {
+    public TableHeader getHeader() {
         return header;
     }
 

@@ -13,7 +13,8 @@ public class EditHistory implements Iterable<EditHistory.Edit> {
     }
 
     public enum Operation {
-        NO_OP,
+        ABORT,
+        STOP,
         ADD,
         DELETE,
         UPDATE;
@@ -28,7 +29,7 @@ public class EditHistory implements Iterable<EditHistory.Edit> {
         }
     }
 
-    public class Edit {
+    public static class Edit {
         private final Operation operation;
         private final int lineNumber;
 

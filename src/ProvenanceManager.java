@@ -1,3 +1,6 @@
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import java.util.*;
 
 /**
@@ -12,14 +15,14 @@ public class ProvenanceManager {
     /**
      * Maps base tables to tables derived from them (i.e. tables that depend on them).
      */
-    private Map<TableHeader, HashSet<TableHeader>> dependencies;
+    private Map<TableHeader, Set<TableHeader>> dependencies;
 
     /**
      * All tools available for use with tables tracked by this provenance manager.
      */
     private Set<Tool> tools;
 
-    public class ImpactedTables {
+    public static class ImpactedTables {
         private Set<TableHeader> definitelyImpacted;
         private Set<TableHeader> possiblyImpacted;
 
@@ -67,18 +70,14 @@ public class ProvenanceManager {
      * Initializes the backing database and loads stored state.
      */
     public void initialize() {
-        //TODO: Don't need to do anything here unless I want to read stuff from db
-        // Load stored tables
-        /*Collection<Table> storedTables = this.dbManager.getTables();
-        if (storedTables != null) {
-            this.tables.addAll(storedTables);
-        }
+        dependencies = ProvenanceSystem.getDbManager().getDependencies();
+    }
 
-        // Load stored tools
-        Collection<Tool> storedTools = this.dbManager.getTools();
-        if (storedTools != null) {
-            this.tools.addAll(storedTools);
-        }*/
+    /**
+     * Save the current dependency state to the db.
+     */
+    public void save() {
+        ProvenanceSystem.getDbManager().saveDependencies(dependencies);
     }
 
     /**
@@ -89,11 +88,7 @@ public class ProvenanceManager {
     public Set<TableHeader> getDependencies(TableHeader base) {
         Set<TableHeader> dependencies = this.dependencies.get(base);
 
-        if (dependencies == null) {
-            return null;
-        }
-
-        return Collections.unmodifiableSet(dependencies);
+        return dependencies == null ? null : Collections.unmodifiableSet(dependencies);
     }
 
     public Set<TableHeader> getDependenciesRecursive(TableHeader base) {
@@ -118,7 +113,7 @@ public class ProvenanceManager {
      * @param derived the derived table
      */
     public void addDependency(TableHeader base, TableHeader derived) {
-        HashSet<TableHeader> set = this.dependencies.get(base);
+        Set<TableHeader> set = this.dependencies.get(base);
 
         if (set == null) {
             set = new HashSet<>();
@@ -178,6 +173,10 @@ public class ProvenanceManager {
     public ImpactedTables getImpactedTables(EditHistory editHistory) {
         ImpactedTables impactedTables = new ImpactedTables();
         Set<TableHeader> directDependencies = getDependencies(editHistory.getTableHeader());
+
+        if (directDependencies == null) {
+            return impactedTables;
+        }
 
         for (TableHeader header : directDependencies) {
             Table dependentTable = Table.getTable(header);
