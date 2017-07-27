@@ -101,6 +101,7 @@ public class Tool {
         Table outputTable = Table.getTable(outputFileName);
         List<TableHeader> inputTableHeaders = inputTables.stream().map(t -> t.getHeader()).collect(Collectors.toList());
         ProvenanceSystem.getProvenanceManager().addDependencies(outputTable.getHeader(), inputTableHeaders);
+        ProvenanceSystem.getProvenanceManager().save();
 
         return output;
     }

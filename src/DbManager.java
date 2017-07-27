@@ -46,18 +46,7 @@ public class DbManager {
             " WHERE ID=?";
 
     private static final String UPDATE_OR_INSERT_DEPENDENCIES_BY_BASE =
-            "BEGIN tran" +
-                "IF EXISTS (SELECT * FROM dependencies WHERE base=?)" +
-                    "BEGIN" +
-                        "UPDATE dependencies" +
-                        "SET derived=?" +
-                        "WHERE base=?" +
-                    "END" +
-                "ELSE" +
-                    "BEGIN" +
-                        "INSERT INTO dependencies VALUES (?, ?)" +
-                    "END" +
-            "COMMIT tran";
+            "INSERT OR REPLACE INTO dependencies VALUES (?, ?)";
 
     /**
      * SQL statement to get all tools.
@@ -168,9 +157,6 @@ public class DbManager {
             PreparedStatement s = conn.prepareStatement(UPDATE_OR_INSERT_DEPENDENCIES_BY_BASE);
             s.setString(1, gson.toJson(base));
             s.setString(2, gson.toJson(derived));
-            s.setString(3, gson.toJson(base));
-            s.setString(4, gson.toJson(base));
-            s.setString(5, gson.toJson(derived));
             s.executeUpdate();
 
             conn.close();
@@ -256,7 +242,7 @@ public class DbManager {
             s.setString(4, tool.getParamTypes()
                     .stream()
                     .map(Parameter.ParameterType::toString)
-                    .collect(Collectors.joining()));
+                    .collect(Collectors.joining(",")));
             s.setInt(5, tool.getToolId());
             s.executeUpdate();
 

@@ -44,7 +44,9 @@ public class ProvenanceManager {
         }
 
         public void addPossiblyImpacted(Collection<TableHeader> headers) {
-            possiblyImpacted.addAll(headers);
+            if (headers != null) {
+                possiblyImpacted.addAll(headers);
+            }
         }
 
         public Set<TableHeader> getDefinitelyImpacted() {
@@ -95,6 +97,12 @@ public class ProvenanceManager {
         Set<TableHeader> dependentTables = new HashSet<>();
 
         List<TableHeader> toCheck = new ArrayList<>();
+        Set<TableHeader> toAdd = getDependencies(base);
+
+        if (toAdd == null) {
+            return null;
+        }
+
         toCheck.addAll(getDependencies(base));
 
         while (!toCheck.isEmpty()) {
@@ -112,24 +120,24 @@ public class ProvenanceManager {
      * @param base the base table
      * @param derived the derived table
      */
-    public void addDependency(TableHeader base, TableHeader derived) {
-        Set<TableHeader> set = this.dependencies.get(base);
+    public void addDependency(TableHeader derived, TableHeader base) {
+        Set<TableHeader> set = this.dependencies.get(derived);
 
         if (set == null) {
             set = new HashSet<>();
         }
 
-        set.add(derived);
-        dependencies.put(base, set);
+        set.add(base);
+        dependencies.put(derived, set);
     }
 
     /**
      * Adds dependencies.
-     * @param base
+     * @param derived
      * @param inputs
      */
-    public void addDependencies(TableHeader base, List<TableHeader> inputs) {
-        inputs.forEach(input -> addDependency(base, input));
+    public void addDependencies(TableHeader derived, List<TableHeader> inputs) {
+        inputs.forEach(input -> addDependency(input, derived));
     }
 
     public Set<TableHeader> getDependentTables(TableHeader base) {

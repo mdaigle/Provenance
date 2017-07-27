@@ -11,42 +11,49 @@ public class Main {
     static final String RUNBOOK_DIR = BASE_DIR + "/runbooks/";
 
     public static void main(String[] args) {
-        ProvenanceSystem.initialize();
+        try {
+            ProvenanceSystem.initialize();
 
-        while(true) {
-            Scanner s = new Scanner(System.in);
-            System.out.print("Enter an option: ");
-            int option = s.nextInt();
+            while (true) {
+                Scanner s = new Scanner(System.in);
+                System.out.print("Enter an option: ");
+                int option = s.nextInt();
 
-            switch (option) {
-                case 0:
-                    System.exit(0);
-                    break;
-                case 1:
-                    //listTools();
-                    break;
-                case 2:
-                    listTables();
-                    break;
-                case 3:
-                    editTable(s);
-                    break;
-                case 4:
-                    runTool(s);
-                    break;
-                case 5:
-                    createTool(s);
-                    break;
-                case 6:
-                    updateTool(s);
-                    break;
-                case 7:
-                    readInRunBook(s);
-                    break;
-                case 8:
-                    playRunBook(s);
-                    break;
+                switch (option) {
+                    case 0:
+                        System.exit(0);
+                        break;
+                    case 1:
+                        //listTools();
+                        break;
+                    case 2:
+                        listTables();
+                        break;
+                    case 3:
+                        editTable(s);
+                        break;
+                    case 4:
+                        refreshTable(s);
+                        break;
+                    case 5:
+                        runTool(s);
+                        break;
+                    case 6:
+                        createTool(s);
+                        break;
+                    case 7:
+                        updateTool(s);
+                        break;
+                    case 8:
+                        readInRunBook(s);
+                        break;
+                    case 9:
+                        playRunBook(s);
+                        break;
+                }
             }
+        } catch (Exception ex) {
+            ProvenanceSystem.getProvenanceManager().save();
         }
     }
 
@@ -158,6 +165,14 @@ public class Main {
         table.save();
     }
 
+    public void refreshTable(Scanner s) {
+        System.out.print("Enter dataset name: ");
+        String fileName = s.next();
+        Table table = Table.getTable(fileName);
+
+
+    }
+
     /*private static void listDependencies() {
         for (Table t : ProvenanceSystem.getProvenanceManager().getTables()) {
             System.out.printf("%s: ", t.getName());
@@ -183,6 +198,11 @@ public class Main {
 
         Tool tool = ProvenanceSystem.getDbManager().getToolById(Integer.parseInt(toolId));
 
+        if (tool == null) {
+            System.out.println("Invalid tool id");
+            return;
+        }
+
         File toolFile = new File(tool.getFileName());
         if (!toolFile.exists()) {
             System.out.println("Invalid tool name");
@@ -207,8 +227,12 @@ public class Main {
             String columnsString = s.next();
 
             List<String> columns = Arrays.asList(columnsString.split(","));
-
-            inputTables.add(Table.getTable(inputFileName, columns));
+            try {
+                inputTables.add(Table.getTable(inputFileName, columns));
+            } catch (Exception ex) {
+                System.out.println("Invalid table name or bad columns");
+                i--;
+            }
         }
 
         System.out.print("Enter name for output table: ");
