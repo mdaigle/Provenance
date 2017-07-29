@@ -127,6 +127,11 @@ public class Table {
         return tm.impactedBy(editHistory);
     }
 
+    public Table refresh() {
+        Tool.rerunTool(header.getName(), tm);
+        return Table.getTable(header);
+    }
+
     public static Table getTable(TableHeader tableHeader) {
         return getTable(tableHeader.getName());
     }

@@ -1,8 +1,8 @@
 import java.util.List;
 
 public class InputTableMetadata {
-    TableHeader tableHeader;
-    List<String> rows;
+    public final TableHeader tableHeader;
+    public final List<String> rows;
 
     InputTableMetadata(TableHeader header, List<String> rows) {
         this.tableHeader = header;

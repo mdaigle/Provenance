@@ -165,12 +165,11 @@ public class Main {
         table.save();
     }
 
-    public void refreshTable(Scanner s) {
+    public static void refreshTable(Scanner s) {
         System.out.print("Enter dataset name: ");
         String fileName = s.next();
         Table table = Table.getTable(fileName);
-
-
+        Table refreshed = table.refresh();
     }
 
     /*private static void listDependencies() {

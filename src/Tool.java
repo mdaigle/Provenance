@@ -106,6 +106,16 @@ public class Tool {
         return output;
     }
 
+    public static void rerunTool(String outputFileName, TableMetadata tm) {
+        List<Table> inputTables = tm.inputTables.stream()
+                .map(table -> table.tableHeader)
+                .map(Table::getTable)
+                .collect(Collectors.toList());
+
+        Tool tool = getById(tm.toolId);
+        tool.run(inputTables, tm.parameters, outputFileName);
+    }
+
     /**
      * Get the file name for this tool
      * @return
@@ -132,7 +142,8 @@ public class Tool {
 
         for (Table table : inputTables) {
             args.add(table.getName());
-            args.add(table.getCSV());
+            String csv = table.getCSV();
+            args.add(csv.replaceAll("\\r?\\n", ",,"));
         }
 
         return args.toArray(new String[]{});
@@ -255,5 +266,9 @@ public class Tool {
 
     public int getToolId() {
         return toolId;
+    }
+
+    public static Tool getById(int toolId) {
+        return ProvenanceSystem.getDbManager().getToolById(toolId);
     }
 }
