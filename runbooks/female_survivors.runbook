@@ -1,0 +1,44 @@
+[
+  {
+    "toolName": "tfe",
+    "parameters":[
+      {
+        "type":"STRING",
+        "value":"5"
+      },
+      {
+        "type":"STRING",
+        "value":"female"
+      }
+    ],
+    "inputFileNames":[
+      "titanic"
+    ],
+    "inputFileColumns":
+    [
+      ["0", "1", "2", "3", "4", "5"]
+    ],
+    "outputFileName": "female"
+  },
+  {
+    "toolName": "tfe",
+    "parameters":[
+      {
+        "type":"STRING",
+        "value":"1"
+      },
+      {
+        "type":"INTEGER",
+        "value":"1"
+      }
+    ],
+    "inputFileNames":[
+      "female"
+    ],
+    "inputFileColumns":
+    [
+      ["0", "1", "2", "3", "4", "5"]
+    ],
+    "outputFileName": "female_survivors"
+  }
+]

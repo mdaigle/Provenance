@@ -19,7 +19,7 @@ public class Step {
     public void run() {
         List<Table> inputTables = new ArrayList<>();
 
-        for (int i = 0; i < inputTables.size(); i++) {
+        for (int i = 0; i < inputFileNames.size(); i++) {
             inputTables.add(Table.getTable(inputFileNames.get(i), inputFileColumns.get(i)));
         }
 

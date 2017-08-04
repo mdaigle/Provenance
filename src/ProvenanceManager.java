@@ -103,11 +103,15 @@ public class ProvenanceManager {
             return null;
         }
 
-        toCheck.addAll(getDependencies(base));
+        toCheck.addAll(toAdd);
+        dependentTables.addAll(toAdd);
 
         while (!toCheck.isEmpty()) {
             TableHeader next = toCheck.remove(0);
             Set<TableHeader> nextDependents = getDependencies(next);
+            if (nextDependents == null) {
+                continue;
+            }
             dependentTables.addAll(nextDependents);
             toCheck.addAll(nextDependents);
         }
