@@ -16,7 +16,7 @@ public class Main {
 
             while (true) {
                 Scanner s = new Scanner(System.in);
-                System.out.print("Enter an option: ");
+                System.out.print("Enter an option (10 for menu): ");
                 int option = s.nextInt();
 
                 switch (option) {
@@ -24,7 +24,7 @@ public class Main {
                         System.exit(0);
                         break;
                     case 1:
-                        //listTools();
+                        listTools();
                         break;
                     case 2:
                         listTables();
@@ -50,6 +50,9 @@ public class Main {
                     case 9:
                         playRunBook(s);
                         break;
+                    case 10:
+                        printMenu();
+                        break;
                 }
             }
         } catch (Exception ex) {
@@ -57,20 +60,33 @@ public class Main {
         }
     }
 
-    /*private static void listTools() {
-        Set<Tool> tools = ProvenanceSystem.getProvenanceManager().getTools();
+    private static void printMenu() {
+        System.out.println("0: quit");
+        System.out.println("1: list tools");
+        System.out.println("2: list tables");
+        System.out.println("3: edit table");
+        System.out.println("4: refresh table");
+        System.out.println("5: run tool");
+        System.out.println("6: create tool");
+        System.out.println("7: update tool");
+        System.out.println("8: read in runbook");
+        System.out.println("9: play runbook");
+    }
 
-        if (tools.isEmpty()) {
+    private static void listTools() {
+        Collection<String> toolsString = ProvenanceSystem.getDbManager().getTools();
+
+        if (toolsString.isEmpty()) {
             System.out.println("No tools\n");
             return;
         }
 
-        System.out.println("Tools:");
+        System.out.println(String.format("%s\t%s\t%s\t%s", "id", "name", "numTables", "params"));
 
-        for (Tool t : tools) {
-            System.out.printf("%s (%d inputs)\n", t.getName(), t.getNumTables());
+        for (String tool : toolsString) {
+            System.out.println(tool);
         }
-    }*/
+    }
 
     private static void listTables() {
         PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:*.csv");

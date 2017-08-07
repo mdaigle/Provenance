@@ -261,7 +261,7 @@ public class DbManager {
         }
     }
 
-    public Collection<Tool> getTools() {
+    public Collection<String> getTools() {
         Connection conn;
         try {
             // Open a connection to the db
@@ -272,13 +272,13 @@ public class DbManager {
             Statement s = conn.createStatement();
             ResultSet results = s.executeQuery(GET_TOOLS_SQL);
 
-            HashSet<Tool> tools = new HashSet<>();
+            List<String> tools = new ArrayList<>();
             while (results.next()) {
+                String id = results.getString(1);
                 String name = results.getString(2);
-                int numTables = results.getInt(3);
-
-                //Tool tool = new Tool(name, numTables);
-                tools.add(null);
+                String numTables = results.getString(3);
+                String params = results.getString(5);
+                tools.add(String.format("%s\t%s\t\t%s\t%s", id, name, numTables, params));
             }
 
             conn.close();
