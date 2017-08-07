@@ -211,9 +211,12 @@ public class Main {
         int numParams = tool.getNumParams();
         List<Parameter> params = new ArrayList<>();
         for (int i = 0; i < numParams; i++) {
-            System.out.printf("Param %d: ", i);
+            Parameter.ParameterType type = tool.getParameter(i).getType();
+            String name = tool.getParameter(i).getName();
+            System.out.printf("Param %d (%s): ", i, name);
             String val = s.next();
-            params.add(new Parameter(tool.getParamTypes().get(i), val));
+
+            params.add(new Parameter(type, val, name));
         }
 
         int numTables = tool.getNumTables();
@@ -253,6 +256,20 @@ public class Main {
         System.out.print("Enter num parameters: ");
         Integer numParameters = s.nextInt();
 
+        System.out.print("Enter parameter names: ");
+        String parameterNamesString = s.next();
+
+        List<String> parameterNames;
+        try {
+            parameterNames = Arrays.asList(parameterNamesString.split(","));
+            if (parameterNames.size() != numParameters) {
+                throw new IllegalArgumentException();
+            }
+        } catch (IllegalArgumentException e) {
+            System.out.println("Illegal argument");
+            return;
+        }
+
         System.out.print("Enter parameter types: ");
         String parameterTypesString = s.next();
 
@@ -261,12 +278,20 @@ public class Main {
             parameterTypes = Arrays.stream(parameterTypesString.split(","))
                     .map(Parameter.ParameterType::valueOf)
                     .collect(Collectors.toList());
+            if (parameterTypes.size() != numParameters) {
+                throw new IllegalArgumentException();
+            }
         } catch (IllegalArgumentException e) {
             System.out.println("Illegal parameter type. Valid types are STRING, INTEGER, and PREDICATE");
             return;
         }
 
-        Tool tool = new Tool(0, toolName, numInputTables, numParameters, parameterTypes);
+        List<Parameter> parameters = new ArrayList<>();
+        for (int i = 0; i < numParameters; i++) {
+            parameters.add(new Parameter(parameterTypes.get(i), "", parameterNames.get(i)));
+        }
+
+        Tool tool = new Tool(0, toolName, numInputTables, parameters);
 
         ProvenanceSystem.getDbManager().addTool(tool);
     }
@@ -290,6 +315,20 @@ public class Main {
         System.out.print("Enter num parameters: ");
         Integer numParameters = s.nextInt();
 
+        System.out.print("Enter parameter names: ");
+        String parameterNamesString = s.next();
+
+        List<String> parameterNames;
+        try {
+            parameterNames = Arrays.asList(parameterNamesString.split(","));
+            if (parameterNames.size() != numParameters) {
+                throw new IllegalArgumentException();
+            }
+        } catch (IllegalArgumentException e) {
+            System.out.println("Illegal argument");
+            return;
+        }
+
         System.out.print("Enter parameter types: ");
         String parameterTypesString = s.next();
 
@@ -298,12 +337,20 @@ public class Main {
             parameterTypes = Arrays.stream(parameterTypesString.split(","))
                     .map(Parameter.ParameterType::valueOf)
                     .collect(Collectors.toList());
+            if (parameterTypes.size() != numParameters) {
+                throw new IllegalArgumentException();
+            }
         } catch (IllegalArgumentException e) {
             System.out.println("Illegal parameter type. Valid types are STRING, INTEGER, and PREDICATE");
             return;
         }
 
-        Tool tool = new Tool(toolId, toolName, numInputTables, numParameters, parameterTypes);
+        List<Parameter> parameters = new ArrayList<>();
+        for (int i = 0; i < numParameters; i++) {
+            parameters.add(new Parameter(parameterTypes.get(i), "", parameterNames.get(i)));
+        }
+
+        Tool tool = new Tool(toolId, toolName, numInputTables, parameters);
 
         ProvenanceSystem.getDbManager().updateTool(tool);
     }

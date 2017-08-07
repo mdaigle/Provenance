@@ -4,14 +4,16 @@ import com.google.gson.GsonBuilder;
 public class Parameter {
     private ParameterType type;
     private String value;
+    private String name;
 
     enum ParameterType {
         STRING, INTEGER, PREDICATE
     }
 
-    Parameter(ParameterType type, String value) {
+    Parameter(ParameterType type, String value, String name) {
         this.type = type;
         this.value = value;
+        this.name = name;
     }
 
     public String getValue() {
@@ -22,6 +24,9 @@ public class Parameter {
         return type;
     }
 
+    public String getName() {
+        return name;
+    }
 
     public String toJSON() {
         Gson gson = new Gson();

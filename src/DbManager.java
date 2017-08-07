@@ -214,10 +214,14 @@ public class DbManager {
             s.setString(1, tool.getName());
             s.setInt(2, tool.getNumTables());
             s.setInt(3, tool.getNumParams());
-            s.setString(4, tool.getParamTypes()
+
+            List<String> params = tool.getParameters()
                     .stream()
-                    .map(Parameter.ParameterType::toString)
-                    .collect(Collectors.joining()));
+                    .map(Parameter::toJSON)
+                    .collect(Collectors.toList());
+            String paramString = new Gson().toJson(params);
+
+            s.setString(4, paramString);
             s.executeUpdate();
 
             conn.close();
@@ -239,10 +243,14 @@ public class DbManager {
             s.setString(1, tool.getName());
             s.setInt(2, tool.getNumTables());
             s.setInt(3, tool.getNumParams());
-            s.setString(4, tool.getParamTypes()
+
+            List<String> params = tool.getParameters()
                     .stream()
-                    .map(Parameter.ParameterType::toString)
-                    .collect(Collectors.joining(",")));
+                    .map(Parameter::toJSON)
+                    .collect(Collectors.toList());
+            String paramString = new Gson().toJson(params);
+
+            s.setString(4, paramString);
             s.setInt(5, tool.getToolId());
             s.executeUpdate();
 
@@ -293,12 +301,13 @@ public class DbManager {
                 String toolName = results.getString(2);
                 int numInputTables = results.getInt(3);
                 int numParameters = results.getInt(4);
-                String parameterTypesString = results.getString(5);
-                List<Parameter.ParameterType> parameterTypes = Arrays.stream(parameterTypesString.split(","))
-                        .map(Parameter.ParameterType::valueOf)
+                String parametersString = results.getString(5);
+                List<String> parametersJsonArray = new Gson().fromJson(parametersString, new TypeToken<List<String>>() {}.getType());
+                List<Parameter> parameters = parametersJsonArray.stream()
+                        .map(p -> new Gson().fromJson(p, Parameter.class))
                         .collect(Collectors.toList());
 
-                Tool tool = new Tool(toolId, toolName, numInputTables, numParameters, parameterTypes);
+                Tool tool = new Tool(toolId, toolName, numInputTables, parameters);
 
                 return tool;
             }
@@ -322,12 +331,13 @@ public class DbManager {
                 int toolId = results.getInt(1);
                 int numInputTables = results.getInt(3);
                 int numParameters = results.getInt(4);
-                String parameterTypesString = results.getString(5);
-                List<Parameter.ParameterType> parameterTypes = Arrays.stream(parameterTypesString.split(","))
-                        .map(Parameter.ParameterType::valueOf)
+                String parametersString = results.getString(5);
+                List<String> parametersJsonArray = new Gson().fromJson(parametersString, new TypeToken<List<String>>() {}.getType());
+                List<Parameter> parameters = parametersJsonArray.stream()
+                        .map(p -> new Gson().fromJson(p, Parameter.class))
                         .collect(Collectors.toList());
 
-                Tool tool = new Tool(toolId, toolName, numInputTables, numParameters, parameterTypes);
+                Tool tool = new Tool(toolId, toolName, numInputTables, parameters);
 
                 return tool;
             }

@@ -24,8 +24,7 @@ public class Tool {
      * The number of tables this tool takes as input.
      */
     private int numTables;
-    private int numParams;
-    private List<Parameter.ParameterType> paramTypes;
+    private List<Parameter> parameters;
 
     public class ToolOutput {
         public String csv;
@@ -56,12 +55,11 @@ public class Tool {
      * @param name
      * @param numTables
      */
-    public Tool(int toolId, String name, int numTables, int numParams, List<Parameter.ParameterType> paramTypes) {
+    public Tool(int toolId, String name, int numTables, List<Parameter> parameters) {
         this.toolId = toolId;
         this.name = name;
         this.numTables = numTables;
-        this.numParams = numParams;
-        this.paramTypes = paramTypes;
+        this.parameters = parameters;
     }
 
     /**
@@ -257,11 +255,15 @@ public class Tool {
     }
 
     public int getNumParams() {
-        return numParams;
+        return parameters.size();
     }
 
-    public List<Parameter.ParameterType> getParamTypes() {
-        return paramTypes;
+    public Parameter getParameter(int index) {
+        return parameters.get(index);
+    }
+
+    public List<Parameter> getParameters() {
+        return parameters;
     }
 
     public int getToolId() {
