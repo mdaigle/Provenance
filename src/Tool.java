@@ -74,14 +74,14 @@ public class Tool {
 
         // Build the command
         String[] javaCommand = new String[]{DEFAULT_TOOL_RUNNER, DEFAULT_TOOL_RUNNER_OPTION, fileName};
-        String[] command = Stream.concat(Arrays.stream(javaCommand), Arrays.stream(args)).toArray(String[]::new);
+        //String[] command = Stream.concat(Arrays.stream(javaCommand), Arrays.stream(args)).toArray(String[]::new);
 
         // Build the process
-        ProcessBuilder pb = new ProcessBuilder(command);
+        ProcessBuilder pb = new ProcessBuilder(javaCommand);
         pb.redirectErrorStream(true);
 
         // Invoke the process
-        RawToolOutput rto = this.invokeProcess(pb);
+        RawToolOutput rto = this.invokeProcess(pb, args);
 
         // Figure out how many columns are in the output csv
         int numOutputCols = rto.csv.split("\n", 2)[0].split(",").length;
@@ -152,14 +152,20 @@ public class Tool {
      * @param pb
      * @return
      */
-    private RawToolOutput invokeProcess(ProcessBuilder pb) {
+    private RawToolOutput invokeProcess(ProcessBuilder pb, String[] args) {
         String outputCSV = "";
         String condensedOutputMetadata = "";
         // Run the tool in a separate system process
         try {
             Process proc = pb.start();
-            InputStream in = proc.getInputStream();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+            InputStream stdout = proc.getInputStream();
+            OutputStream stdin = proc.getOutputStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(stdout));
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(stdin));
+
+            writer.write(String.join(" ", args));
+            writer.flush();
+            writer.close();
 
             outputCSV = this.readOutputBlock(reader);
             condensedOutputMetadata = this.readOutputBlock(reader);

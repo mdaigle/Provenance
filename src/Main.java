@@ -179,13 +179,34 @@ public class Main {
 
         // Write the csv to disk to save the edits
         table.save();
+
+        System.out.print("Refresh datasets? (y/n): ");
+        String refreshOption = s.next();
+        if (!refreshOption.equals("y")) {
+            return;
+        }
+
+        System.out.print("Enter dataset names: ");
+        String fileNamesString = s.next();
+        String[] fileNames = fileNamesString.split(",");
+
+        System.out.print("Smart refresh? (y/n): ");
+        String smartOption = s.next();
+        boolean smartRefresh = smartOption.equals("y");
+
+        for (String name : fileNames) {
+            Table stale = Table.getTable(name);
+            stale.refresh(smartRefresh, editHistory);
+            System.out.printf("Refreshed %s", name);
+        }
     }
 
     public static void refreshTable(Scanner s) {
         System.out.print("Enter dataset name: ");
         String fileName = s.next();
+
         Table table = Table.getTable(fileName);
-        Table refreshed = table.refresh();
+        Table refreshed = table.refresh(false);
     }
 
     /*private static void listDependencies() {

@@ -132,6 +132,14 @@ public class Table {
         return Table.getTable(header);
     }
 
+    public Table refresh(boolean smart, EditHistory editHistory) {
+        if (!smart) {
+            return refresh();
+        }
+        
+        return null;
+    }
+
     public static Table getTable(TableHeader tableHeader) {
         return getTable(tableHeader.getName());
     }
